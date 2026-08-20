@@ -34,14 +34,9 @@ run() {
 echo "--- 1. Products ---"
 run "Total" "SELECT count(*) FROM \"Product\";"
 
-# 2. Total ProductVariant count
+# 2. Total Listing count
 echo ""
-echo "--- 2. ProductVariant ---"
-run "Total" "SELECT count(*) FROM \"ProductVariant\";"
-
-# 3. Total Listing count
-echo ""
-echo "--- 3. Listings ---"
+echo "--- 2. Listings ---"
 run "Total" "SELECT count(*) FROM \"Listing\";"
 run "In-stock" "SELECT count(*) FROM \"Listing\" WHERE \"stockStatus\" = 'IN_STOCK' AND \"archivedAt\" IS NULL;"
 
@@ -142,7 +137,7 @@ run "Products with demo source listings" "
 run "Listings with demo sourceProductId" "
   SELECT count(*) FROM \"Listing\" WHERE \"sourceProductId\" LIKE 'demo-%';
 "
-run "Products where all listings are demo" "
+run "Products with zero non-demo listings" "
   SELECT count(*)
   FROM \"Product\" pr
   WHERE NOT EXISTS (
