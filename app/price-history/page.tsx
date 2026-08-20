@@ -48,7 +48,7 @@ export default async function PriceHistoryIndexPage() {
                 {product.storage} GB · {product.condition}
               </p>
             </div>
-            {product.bestPrice !== undefined && (
+            {product.bestPrice != null && (
               <p className="font-bold">{formatINR(product.bestPrice)}</p>
             )}
           </Link>

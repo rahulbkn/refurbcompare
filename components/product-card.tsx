@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ProductDto } from "@/lib/repo/types";
 import { formatINR } from "@/lib/format";
 
-export type ProductCardProduct = ProductDto & { bestPrice?: number };
+export type ProductCardProduct = ProductDto & { bestPrice?: number | null };
 
 export default function ProductCard({ product }: { product: ProductCardProduct }) {
   const bestPrice = product.bestPrice;
@@ -48,7 +48,7 @@ export default function ProductCard({ product }: { product: ProductCardProduct }
       </div>
 
       <div className="mt-auto pt-4">
-        {bestPrice !== undefined ? (
+        {bestPrice !== undefined && bestPrice !== null ? (
           <p className="text-xl font-bold">
             {formatINR(bestPrice)}
             <span className="ml-1 text-xs font-medium text-[var(--text-muted)]">from</span>

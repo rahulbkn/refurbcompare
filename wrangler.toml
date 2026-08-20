@@ -18,9 +18,9 @@ assets = { directory = ".open-next/assets", binding = "ASSETS" }
 # EXTERNAL_API_URL is a secret (do not put here).
 
 [vars]
-NEXT_PUBLIC_APP_URL = "https://refurbcompare.example.com"
-NEXT_PUBLIC_DEMO_MODE = "true"
-FRONTEND_ORIGIN = "https://refurbcompare.example.com"
+NEXT_PUBLIC_APP_URL = "https://RefurbMeter.pages.dev"
+NEXT_PUBLIC_DEMO_MODE = "false"
+FRONTEND_ORIGIN = "https://RefurbMeter.pages.dev"
 API_MODE = "external"
 EXTERNAL_API_TIMEOUT_MS = "10000"
 

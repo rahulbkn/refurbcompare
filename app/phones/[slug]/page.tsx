@@ -69,7 +69,7 @@ export default async function PhonePage({
             )}
           </div>
 
-          {bestPrice !== undefined && (
+          {bestPrice != null && (
             <div className="rounded-xl bg-[var(--surface-2)] p-4">
               <p className="text-xs text-[var(--text-muted)]">
                 Best price across {inStockListings.length} in-stock seller
