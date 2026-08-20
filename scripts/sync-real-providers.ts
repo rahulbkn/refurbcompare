@@ -15,11 +15,12 @@ async function main() {
   if (!process.env.RENDER_DATABASE_URL) throw new Error('RENDER_DATABASE_URL is required (CI only).');
 
   // DATA_MODE=live refuses well-known admin keys in config validation.
-  process.env.ADMIN_API_KEY ??= `ci-${randomBytes(16).toString('hex')}`;
+  const adminApiKey = process.env.ADMIN_API_KEY ?? `ci-${randomBytes(16).toString('hex')}`;
 
   const config = loadConfig({
     NODE_ENV: 'development',
     DATA_MODE: 'live',
+    ADMIN_API_KEY: adminApiKey,
     DATABASE_DRIVER: 'prisma',
     DATABASE_URL: process.env.RENDER_DATABASE_URL,
     QUEUE_DRIVER: 'memory',
