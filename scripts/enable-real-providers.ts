@@ -8,6 +8,7 @@
 import { createLogger, loadConfig } from '@refurbcompare/core';
 import { createRepository } from '@refurbcompare/db';
 import { listConnectors } from '@refurbcompare/ingestion';
+import { randomBytes } from 'node:crypto';
 
 const AUTH: Record<string, { domains: string; paths: string; fields: string; rmpm: number; notes: string }> = {
   cashify: {
@@ -49,6 +50,9 @@ const AUTH: Record<string, { domains: string; paths: string; fields: string; rmp
 
 async function main() {
   if (!process.env.RENDER_DATABASE_URL) throw new Error('RENDER_DATABASE_URL is required (CI only).');
+
+  // DATA_MODE=live refuses well-known admin keys in config validation.
+  process.env.ADMIN_API_KEY ??= `ci-${randomBytes(16).toString('hex')}`;
 
   const config = loadConfig({
     NODE_ENV: 'development',

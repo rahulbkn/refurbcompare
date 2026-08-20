@@ -9,9 +9,13 @@
 import { createLogger, loadConfig } from '@refurbcompare/core';
 import { createRepository, demoProductId } from '@refurbcompare/db';
 import { runProviderSync, listConnectors } from '@refurbcompare/ingestion';
+import { randomBytes } from 'node:crypto';
 
 async function main() {
   if (!process.env.RENDER_DATABASE_URL) throw new Error('RENDER_DATABASE_URL is required (CI only).');
+
+  // DATA_MODE=live refuses well-known admin keys in config validation.
+  process.env.ADMIN_API_KEY ??= `ci-${randomBytes(16).toString('hex')}`;
 
   const config = loadConfig({
     NODE_ENV: 'development',
