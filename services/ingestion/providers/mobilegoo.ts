@@ -1,8 +1,14 @@
+import { buildDemoListingsForSeller } from "@/services/ingestion/mock/data";
 import type { FeedListing } from "@/lib/repo/types";
 import type { ProviderAdapter } from "@/services/ingestion/types";
 
+// TEST fixtures are served ONLY when demo mode is on (NEXT_PUBLIC_DEMO_MODE).
+// Outside demo mode the adapter stays a stub and refuses to serve anything:
+// no live integration exists and no live traffic may be simulated.
+const DEMO_GATED = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+
 const NOT_CONFIGURED =
-  "No authorized product feed or written permission yet. Enable only after an integration agreement is in place.";
+  "No authorized product feed or written permission yet. TEST fixtures served only in demo mode (NEXT_PUBLIC_DEMO_MODE=true) — never live traffic.";
 
 export const mobilegooAdapter: ProviderAdapter = {
   slug: "mobilegoo",
@@ -12,8 +18,11 @@ export const mobilegooAdapter: ProviderAdapter = {
   defaultConfig: { feedEndpoint: "" },
   disabledReason: NOT_CONFIGURED,
   async fetchListings(): Promise<FeedListing[]> {
-    throw new Error(
-      "mobilegoo adapter is a stub: no authorized feed configured (see PROVIDER_INTEGRATION.md).",
-    );
+    if (!DEMO_GATED) {
+      throw new Error(
+        "mobilegoo adapter is a stub: no authorized feed configured (see PROVIDER_INTEGRATION.md). TEST fixtures only with NEXT_PUBLIC_DEMO_MODE=true.",
+      );
+    }
+    return buildDemoListingsForSeller("mobilegoo");
   },
 };

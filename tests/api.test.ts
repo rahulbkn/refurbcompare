@@ -52,8 +52,8 @@ describe('public API', () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.success).toBe(true);
-    expect(body.data.length).toBe(10);
-    expect(body.meta.total).toBe(10);
+    expect(body.data.length).toBe(11);
+    expect(body.meta.total).toBe(11);
   });
 
   it('filters products by brand', async () => {
@@ -127,22 +127,23 @@ describe('public API', () => {
     expect(res.json().data.points.length).toBeGreaterThan(0);
   });
 
-  it('GET /go/:id redirects once provider enabled & approved', async () => {
+  it("GET /go/:id refuses redirects for TEST listings even when the provider is enabled", async () => {
     // Providers are disabled by default: redirect must be refused.
-    const refused = await app.inject({ method: 'GET', url: '/go/listing_demo-cashify-apple-iphone-13-128gb' });
+    const refused = await app.inject({ method: "GET", url: "/go/listing_demo-cashify-apple-iphone-13-128gb-test" });
     expect(refused.statusCode).toBe(403);
 
-    // Enable + authorize cashify like the admin flow would.
+    // Enable cashify like the admin flow would. TEST fixtures live on a
+    // non-resolvable `test-*.refurbcompare.in` host, so the redirect stays
+    // refused: no Buy redirect may ever point test data at a real seller.
     await app.inject({
-      method: 'PATCH',
-      url: '/api/v1/admin/providers/provider_cashify',
-      headers: { 'x-admin-key': 'test-admin-key' },
+      method: "PATCH",
+      url: "/api/v1/admin/providers/provider_cashify",
+      headers: { "x-admin-key": "test-admin-key" },
       payload: { active: true, disabledReason: null },
     });
-    const redirect = await app.inject({ method: 'GET', url: '/go/listing_demo-cashify-apple-iphone-13-128gb' });
-    expect(redirect.statusCode).toBe(302);
-    expect(redirect.headers.location).toContain('cashify.in');
-    expect(redirect.headers.location).toContain('utm_source');
+    const redirect = await app.inject({ method: "GET", url: "/go/listing_demo-cashify-apple-iphone-13-128gb-test" });
+    expect(redirect.statusCode).toBe(403);
+    expect(redirect.headers.location).toBeUndefined();
   });
 });
 
@@ -294,7 +295,7 @@ describe('live mode isolation (demo-seeded db promoted to DATA_MODE=live)', () =
     const res = await liveApp.inject({ method: 'GET', url: '/api/v1/products?pageSize=50' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.data.length).toBe(10);
+    expect(body.data.length).toBe(11);
     for (const item of body.data) {
       expect(item.bestPrice).toBeNull();
       (item.listingCount as number) >= 0;

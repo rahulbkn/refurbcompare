@@ -45,11 +45,18 @@ export default function SellerOfferCard({ listing }: { listing: ListingDto }) {
           ) : null}
           <p className="text-2xl font-bold">{formatINR(listing.price)}</p>
         </div>
-        {listing.discountPct ? (
-          <span className="rounded-lg bg-red-50 px-2 py-1 text-xs font-bold text-red-600 dark:bg-red-950 dark:text-red-300">
-            -{Math.round(listing.discountPct)}%
-          </span>
-        ) : null}
+        <div className="flex flex-col items-end gap-1">
+          {DEMO_MODE && (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+              TEST data
+            </span>
+          )}
+          {listing.discountPct ? (
+            <span className="rounded-lg bg-red-50 px-2 py-1 text-xs font-bold text-red-600 dark:bg-red-950 dark:text-red-300">
+              -{Math.round(listing.discountPct)}%
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5 text-[11px] text-[var(--text-muted)]">
@@ -82,12 +89,16 @@ export default function SellerOfferCard({ listing }: { listing: ListingDto }) {
         <span className="pointer-events-none inline-flex h-10 items-center justify-center rounded-xl bg-[var(--surface-2)] text-sm font-semibold text-[var(--text-muted)]">
           Out of stock
         </span>
+      ) : DEMO_MODE ? (
+        <span className="pointer-events-none inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 text-sm font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+          TEST data — no live redirect
+        </span>
       ) : (
         <Link
           href={`/go/${listing.id}`}
           className="mt-auto inline-flex h-10 items-center justify-center rounded-xl bg-[var(--color-brand-600)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-brand-700)]"
         >
-          {DEMO_MODE ? "View offer on seller" : "Buy now"}
+          Buy now
         </Link>
       )}
     </div>

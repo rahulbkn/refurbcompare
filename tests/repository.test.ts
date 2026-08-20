@@ -26,7 +26,7 @@ afterAll(() => {
 describe('SqliteRepository', () => {
   it('lists seeded demo products with best-price aggregates', async () => {
     const { items, total } = await repo.listProducts({ page: 1, pageSize: 100 });
-    expect(total).toBe(10);
+    expect(total).toBe(11);
     expect(items[0]).toMatchObject({ brand: expect.any(String), slug: expect.any(String) });
   });
 

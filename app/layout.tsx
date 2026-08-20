@@ -95,7 +95,7 @@ function Footer() {
           </p>
           <p>
             {DEMO_MODE
-              ? "Demo mode: listings shown are sample data. Live availability and pricing are not claimed."
+              ? "TEST DATA — NOT LIVE PRICES. Listings shown are synthetic test data; live availability and pricing are not claimed."
               : "Prices and availability are supplied by third-party sellers and may change at any time."}
           </p>
           <p>© {new Date().getFullYear()} RefurbCompare</p>

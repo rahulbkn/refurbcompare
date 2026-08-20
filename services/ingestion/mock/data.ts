@@ -393,6 +393,80 @@ export function buildDemoListings(): AuthoringListing[] {
   return listings;
 }
 
+/**
+ * TEST listings for a single legacy seller. Used by the five seller adapters
+ * (cashify, budli, refit, sahivalue, mobilegoo) so they serve TEST data in demo
+ * mode instead of throwing. Prices for the catalog devices that overlap the
+ * canonical fixture variants are PINNED to the ladder in
+ * packages/db/src/seed-data.ts (TEST_FIXTURE_VARIANTS); everything else uses the
+ * deterministic demo walk. Every targetUrl lives on a non-resolvable
+ * `test-<seller>.refurbcompare.in` host so Buy redirects are always refused.
+ * This module must only be reached with NEXT_PUBLIC_DEMO_MODE=true — the
+ * adapters enforce that gate before calling it.
+ */
+const FIXTURE_PRICE_OVERRIDES: Record<string, Record<string, number>> = {
+  cashify: {
+    "apple-iphone-13-128gb": 26799,
+    "apple-iphone-13-256gb": 30999,
+    "apple-iphone-14-128gb": 48799,
+    "google-pixel-7-128gb": 24599,
+  },
+  budli: {
+    "apple-iphone-13-128gb": 27199,
+    "apple-iphone-13-256gb": 31499,
+    "apple-iphone-14-128gb": 49299,
+    "google-pixel-7-128gb": 24999,
+  },
+  refit: {
+    "apple-iphone-13-128gb": 27599,
+    "apple-iphone-13-256gb": 31999,
+    "apple-iphone-14-128gb": 49699,
+    "google-pixel-7-128gb": 25399,
+  },
+  sahivalue: {
+    "apple-iphone-13-128gb": 27999,
+    "apple-iphone-13-256gb": 32499,
+    "apple-iphone-14-128gb": 50099,
+    "google-pixel-7-128gb": 25799,
+  },
+  mobilegoo: {
+    "apple-iphone-13-128gb": 28499,
+    "apple-iphone-13-256gb": 32699,
+    "apple-iphone-14-128gb": 50499,
+    "google-pixel-7-128gb": 26299,
+  },
+};
+
+export function buildDemoListingsForSeller(sellerSlug: string): AuthoringListing[] {
+  const seller = SELLERS.find((s) => s.slug === sellerSlug);
+  if (!seller) return [];
+  const overrides = FIXTURE_PRICE_OVERRIDES[sellerSlug] ?? {};
+  const listings: AuthoringListing[] = [];
+
+  for (const product of PRODUCTS) {
+    const pinned = overrides[product.slug] ?? null;
+    const rand = mulberry32(hashSeed(seller.slug, product.slug));
+    const price = pinned ?? Math.round((product.basePrice * (0.955 + rand() * 0.1)) / 100) * 100;
+    const originalPrice = pinned !== null ? pinned + 4999 : Math.round((product.basePrice * (1.22 + rand() * 0.1)) / 100) * 100;
+
+    listings.push({
+      sellerSlug: seller.slug,
+      productSlug: product.slug,
+      targetUrl: `https://test-${seller.slug}.refurbcompare.in/product/${product.slug}${pinned ? "?fixture=1" : ""}`,
+      price,
+      originalPrice,
+      discountPct: pinned ? 15 : Math.round(((originalPrice - price) / originalPrice) * 100),
+      condition: "Excellent",
+      storage: product.storage,
+      inStock: true,
+      stockStatus: "in_stock",
+      offerBadge: pinned ? "TEST" : null,
+    });
+  }
+
+  return listings;
+}
+
 /** Simulate ~45 days of price history per seller × product. */
 export function buildDemoPriceHistory(days = 45) {
   type Point = {

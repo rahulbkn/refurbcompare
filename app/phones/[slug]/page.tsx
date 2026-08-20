@@ -104,8 +104,8 @@ export default async function PhonePage({
           <AffiliateDisclosure />
           {DEMO_MODE && (
             <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
-              Demo mode: prices and offers are sample data generated for
-              demonstration only.
+              TEST DATA — NOT LIVE PRICES. Prices, offers and Buy redirects in
+              this preview are synthetic test data for demonstration only.
             </p>
           )}
         </div>

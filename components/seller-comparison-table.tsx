@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ListingDto } from "@/lib/repo/types";
 import { formatINR } from "@/lib/format";
+import { DEMO_MODE } from "@/lib/seo";
 
 export default function SellerComparisonTable({
   listings,
@@ -89,6 +90,10 @@ export default function SellerComparisonTable({
                   {outOfStock ? (
                     <span className="inline-flex h-8 items-center rounded-lg bg-[var(--surface-2)] px-3 text-xs font-semibold text-[var(--text-muted)]">
                       Out of stock
+                    </span>
+                  ) : DEMO_MODE ? (
+                    <span className="inline-flex h-8 items-center rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+                      TEST
                     </span>
                   ) : (
                     <Link

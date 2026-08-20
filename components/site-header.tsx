@@ -14,7 +14,8 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-40 border-b bg-[var(--bg)]/90 backdrop-blur">
       {DEMO_MODE && (
         <div className="bg-amber-100 py-1 text-center text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
-          Demo mode — listings are sample data, not live offers.
+          TEST DATA — NOT LIVE PRICES. Listings are synthetic test data, not
+          live offers.
         </div>
       )}
       <div className="container flex h-14 items-center justify-between gap-4">

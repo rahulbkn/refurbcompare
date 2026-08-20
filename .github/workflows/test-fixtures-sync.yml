@@ -1,0 +1,39 @@
+# RefurbCompare — run the 5-provider TEST fixtures server-side
+#
+# Ingests TEST data (Cashify, Budli, ReFit Global, SahiValue, MobileGoo) into
+# the Render Postgres via scripts/sync-test-fixtures.ts, which forces
+# DATA_MODE=demo so TEST rows never cross a live guard, then asserts the pinned
+# iPhone 13 128GB ladder (26,799 -> 28,499) landed for all 5 sellers.
+#
+# Run manually from the Actions tab; do NOT run locally on Termux (no Prisma
+# client binary). Requires the repository secret RENDER_DATABASE_URL.
+#
+# The demo gate is REVERSIBLE and additive: rows written here are the same rows
+# produced by seedDemoListings, so a live-mode rollout can purge them via
+# archiveDemoListings and the API's visibility rule hides them while DATA_MODE=live.
+
+name: test-fixtures-sync
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: test-fixtures-sync
+  cancel-in-progress: false
+
+jobs:
+  ingest-into-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:workspaces
+      - name: Ingest TEST fixtures and verify ladder
+        env:
+          RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+        run: npx tsx scripts/sync-test-fixtures.ts
