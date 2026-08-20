@@ -49,6 +49,29 @@ describe('SqliteRepository', () => {
     expect(byId?.id).toBe(bySlug?.id);
   });
 
+  it('hides demo listings from aggregates when liveVisibleOnly is set', async () => {
+    const p = await repo.getProductBySlug('apple-iphone-13-128gb');
+    expect(p!.listingCount).toBe(5);
+    expect(p!.bestPrice).toBe(26799);
+
+    const live = await repo.getProductBySlug('apple-iphone-13-128gb', { liveVisibleOnly: true });
+    expect(live!.listingCount).toBe(0);
+    expect(live!.bestPrice).toBeNull();
+
+    const byId = await repo.getProductById(p!.id, { liveVisibleOnly: true });
+    expect(byId!.listingCount).toBe(0);
+  });
+
+  it('listProducts excludes demo offer aggregates in live-visible mode', async () => {
+    const { items, total } = await repo.listProducts({ page: 1, pageSize: 100, liveVisibleOnly: true });
+    expect(total).toBe(11);
+    for (const item of items) {
+      expect(item.listingCount).toBe(0);
+      expect(item.bestPrice).toBeNull();
+      expect(item.bestDiscount).toBeNull();
+    }
+  });
+
   it('lists in-stock listings for a product with relations', async () => {
     const product = await repo.getProductBySlug('apple-iphone-13-128gb');
     const listings = await repo.listListingsForProduct(product!.id);

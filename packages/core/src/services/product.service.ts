@@ -55,16 +55,17 @@ export function toPublicProduct(
 
 export function createProductService(ctx: ServiceContext) {
   const { repo } = ctx;
+  const liveVisibleOnly = ctx.config.dataMode === 'live';
 
   async function listProducts(filter: ProductFilter): Promise<{ items: PublicProduct[]; total: number }> {
-    const result = await repo.listProducts(filter);
+    const result = await repo.listProducts({ ...filter, liveVisibleOnly });
     return { items: result.items.map(toPublicProduct), total: result.total };
   }
 
   async function getProduct(slugOrId: string): Promise<PublicProduct> {
     const product = /^prod_/.test(slugOrId)
-      ? await repo.getProductById(slugOrId)
-      : await repo.getProductBySlug(slugOrId);
+      ? await repo.getProductById(slugOrId, { liveVisibleOnly })
+      : await repo.getProductBySlug(slugOrId, { liveVisibleOnly });
     if (!product) throw AppErr.notFound('Product not found');
     return toPublicProduct(product);
   }

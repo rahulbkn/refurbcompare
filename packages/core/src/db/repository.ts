@@ -32,6 +32,9 @@ export interface ProductFilter {
   maxPrice?: number;
   sort?: 'price_asc' | 'price_desc' | 'discount_desc' | 'rating_desc' | 'newest';
   inStock?: boolean;
+  /** When true, only listings that may surface in DATA_MODE=live are aggregated
+   * (non-demo sourceProductId from an active, non-demo provider). */
+  liveVisibleOnly?: boolean;
   page: number;
   pageSize: number;
 }
@@ -124,8 +127,8 @@ export interface Repository {
 
   // --- products ---
   listProducts(filter: ProductFilter): Promise<{ items: ProductWithBest[]; total: number }>;
-  getProductBySlug(slug: string): Promise<ProductWithBest | null>;
-  getProductById(id: string): Promise<ProductWithBest | null>;
+  getProductBySlug(slug: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null>;
+  getProductById(id: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null>;
   listProductsForSync(): Promise<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant'>[]>;
   upsertProduct(input: UpsertProductInput): Promise<Product>;
   updateProduct(id: string, patch: Partial<UpsertProductInput>): Promise<Product | null>;

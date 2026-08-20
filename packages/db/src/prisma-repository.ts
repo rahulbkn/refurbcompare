@@ -187,7 +187,7 @@ export class PrismaRepository implements Repository {
         { modelNumber: { contains: filter.query, mode: 'insensitive' } },
       ];
     }
-    const listingWhere: Record<string, unknown> = { stockStatus: IN_STOCK, archivedAt: null };
+    const listingWhere = this.listingWhere(filter.liveVisibleOnly === true);
     if (filter.minPrice != null) listingWhere.price = { gte: filter.minPrice };
     if (filter.maxPrice != null) listingWhere.price = { ...(listingWhere.price as object), lte: filter.maxPrice };
     if (filter.condition) listingWhere.normalizedCondition = filter.condition;
@@ -250,18 +250,27 @@ export class PrismaRepository implements Repository {
     };
   }
 
-  async getProductBySlug(slug: string): Promise<ProductWithBest | null> {
+  private listingWhere(liveVisibleOnly: boolean): Record<string, unknown> {
+    const where: Record<string, unknown> = { stockStatus: IN_STOCK, archivedAt: null };
+    if (liveVisibleOnly) {
+      where.sourceProductId = { not: { startsWith: 'demo-' } };
+      where.provider = { active: true, isDemo: false };
+    }
+    return where;
+  }
+
+  async getProductBySlug(slug: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null> {
     const row = await this.client.product.findUnique({
       where: { slug },
-      include: { listings: { where: { stockStatus: IN_STOCK, archivedAt: null } } },
+      include: { listings: { where: this.listingWhere(opts?.liveVisibleOnly === true) } },
     });
     return row ? this.withBest(row) : null;
   }
 
-  async getProductById(id: string): Promise<ProductWithBest | null> {
+  async getProductById(id: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null> {
     const row = await this.client.product.findUnique({
       where: { id },
-      include: { listings: { where: { stockStatus: IN_STOCK, archivedAt: null } } },
+      include: { listings: { where: this.listingWhere(opts?.liveVisibleOnly === true) } },
     });
     return row ? this.withBest(row) : null;
   }

@@ -196,10 +196,18 @@ function mapListingWithRelations(row: Record<string, unknown>): ListingWithRelat
   return listing;
 }
 
-const PRODUCT_SELECT_PREFIX = `
+/** Restricts the best-price subqueries to listings allowed to surface in
+ * DATA_MODE=live: non-demo sourceProductId from an active, non-demo provider. */
+function listingVisibilitySQL(): string {
+  return `sourceProductId NOT LIKE 'demo-%' AND providerId IN (SELECT id FROM Provider WHERE active = 1 AND isDemo = 0)`;
+}
+
+function productSelectPrefix(liveVisibleOnly: boolean): string {
+  const vis = liveVisibleOnly ? ` AND ${listingVisibilitySQL()}` : '';
+  return `
 SELECT p.*, s.bestPrice, s.bestDiscount, s.bestRating, s.listingCount,
   (SELECT l.normalizedCondition FROM Listing l
-     WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.archivedAt IS NULL
+     WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.archivedAt IS NULL${vis}
      ORDER BY l.price ASC, l.createdAt ASC LIMIT 1) AS bestCondition
 FROM Product p
 LEFT JOIN (
@@ -209,18 +217,20 @@ LEFT JOIN (
     MAX(sellerRating) AS bestRating,
     COUNT(*) AS listingCount
   FROM Listing
-  WHERE stockStatus='IN_STOCK' AND archivedAt IS NULL
+  WHERE stockStatus='IN_STOCK' AND archivedAt IS NULL${vis}
   GROUP BY productId
 ) s ON s.productId = p.id
 `;
+}
 
-function productSelectSQL(whereClause: string): string {
-  return `${PRODUCT_SELECT_PREFIX}WHERE ${whereClause} ORDER BY p.createdAt DESC LIMIT 1`;
+function productSelectSQL(whereClause: string, liveVisibleOnly = false): string {
+  return `${productSelectPrefix(liveVisibleOnly)}WHERE ${whereClause} ORDER BY p.createdAt DESC LIMIT 1`;
 }
 
 export function listProductsSQL(filters: Partial<ProductFilter>): { sql: string; params: (string | number | null)[] } {
   const where: string[] = [];
   const params: (string | number | null)[] = [];
+  const vis = filters.liveVisibleOnly === true ? ` AND ${listingVisibilitySQL()}` : '';
 
   if (filters.brand) {
     where.push('p.brand = ?');
@@ -236,15 +246,15 @@ export function listProductsSQL(filters: Partial<ProductFilter>): { sql: string;
     params.push(q, q, q);
   }
   if (filters.condition) {
-    where.push(`EXISTS (SELECT 1 FROM Listing l WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.archivedAt IS NULL AND l.normalizedCondition = ?)`);
+    where.push(`EXISTS (SELECT 1 FROM Listing l WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.archivedAt IS NULL AND l.normalizedCondition = ?${vis})`);
     params.push(filters.condition);
   }
   if (filters.minPrice != null) {
-    where.push(`EXISTS (SELECT 1 FROM Listing l WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.price >= ?)`);
+    where.push(`EXISTS (SELECT 1 FROM Listing l WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.price >= ?${vis})`);
     params.push(filters.minPrice);
   }
   if (filters.maxPrice != null) {
-    where.push(`EXISTS (SELECT 1 FROM Listing l WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.price <= ?)`);
+    where.push(`EXISTS (SELECT 1 FROM Listing l WHERE l.productId = p.id AND l.stockStatus='IN_STOCK' AND l.price <= ?${vis})`);
     params.push(filters.maxPrice);
   }
   if (filters.inStock === true) {
@@ -262,7 +272,7 @@ export function listProductsSQL(filters: Partial<ProductFilter>): { sql: string;
 
   const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
 
-  const sql = `${PRODUCT_SELECT_PREFIX}${whereSql} ${sortSql}`;
+  const sql = `${productSelectPrefix(filters.liveVisibleOnly === true)}${whereSql} ${sortSql}`;
 
   return { sql, params };
 }
@@ -301,16 +311,16 @@ export class SqliteRepository implements Repository {
     };
   }
 
-  async getProductBySlug(slug: string): Promise<ProductWithBest | null> {
+  async getProductBySlug(slug: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null> {
     const row = this.db
-      .prepare(productSelectSQL(`p.slug = ?`))
+      .prepare(productSelectSQL(`p.slug = ?`, opts?.liveVisibleOnly === true))
       .get(slug) as Record<string, unknown> | undefined;
     return row ? mapProductWithBest(row) : null;
   }
 
-  async getProductById(id: string): Promise<ProductWithBest | null> {
+  async getProductById(id: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null> {
     const row = this.db
-      .prepare(productSelectSQL(`p.id = ?`))
+      .prepare(productSelectSQL(`p.id = ?`, opts?.liveVisibleOnly === true))
       .get(id) as Record<string, unknown> | undefined;
     return row ? mapProductWithBest(row) : null;
   }
