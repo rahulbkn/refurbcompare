@@ -1,0 +1,34 @@
+# RefurbCompare — remove TEST/fixture rows from the production database.
+#
+# Once real live syncs are in place this hard-deletes the demo-* product rows,
+# their listings, and associated price-history/click rows that were written by
+# scripts/sync-test-fixtures.ts (see scripts/purge-fixtures.ts for scope).
+#
+# Run manually from the Actions tab; do NOT run locally on Termux (no Prisma
+# binary). Requires the repository secret RENDER_DATABASE_URL.
+
+name: purge-fixtures
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: purge-fixtures
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:workspaces
+      - name: Purge demo/fixture rows from production DB
+        env:
+          DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+        run: npx tsx scripts/purge-fixtures.ts
