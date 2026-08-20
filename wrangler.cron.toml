@@ -1,0 +1,30 @@
+// Cron worker for Mode A scheduled provider sync. Deployed side-by-side with
+// the main Next.js worker but as a separate Worker (cannot share the OpenNext
+// generated worker without overriding it).
+//
+//   wrangler deploy --config wrangler.cron.toml
+//   wrangler secret put EXTERNAL_API_URL --config wrangler.cron.toml
+//   wrangler secret put API_INTERNAL_TOKEN --config wrangler.cron.toml
+//
+// Local test (no workerd needed on this machine):
+//   EXTERNAL_API_URL=http://127.0.0.1:4000 API_INTERNAL_TOKEN=dev-admin-key \
+//     npx tsx scripts/cf-cron-run.ts
+
+name = "refurbcompare-cron"
+main = "workers/cron-sync.ts"
+compatibility_date = "2026-08-20"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+SYNC_PROVIDERS = "cashify,budli,refit,sahivalue,mobilegoo"
+SYNC_MODE = "MOCK"  # MOCK(demo) | API | FEED | AUTHORIZED_CRAWL | MANUAL_IMPORT
+
+# The external API endpoint is a secret; set with `wrangler secret put`.
+# EXTERNAL_API_URL
+# API_INTERNAL_TOKEN
+
+# Initially DISABLED. To enable the 30-minute provider sync, uncomment and
+# redeploy with `wrangler deploy --config wrangler.cron.toml`, or trigger the
+# deploy-cron job in the GitHub Actions workflow with deploy_cron=true.
+# [triggers]
+# crons = ["*/30 * * * *"]

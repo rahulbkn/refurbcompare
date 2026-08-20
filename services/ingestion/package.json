@@ -1,0 +1,38 @@
+{
+  "name": "@refurbcompare/ingestion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Data ingestion: provider connectors, normalization + matching against canonical products, sync pipeline, queue workers and scheduler.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/bin/worker.ts",
+    "start": "node dist/bin/worker.js",
+    "worker": "node dist/bin/worker.js",
+    "worker:dev": "tsx src/bin/worker.ts",
+    "scheduler": "node dist/bin/scheduler.js",
+    "scheduler:dev": "tsx src/bin/scheduler.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@refurbcompare/core": "*",
+    "@refurbcompare/db": "*",
+    "bullmq": "^5.0.0",
+    "ioredis": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

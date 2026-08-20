@@ -1,0 +1,245 @@
+# Cloudflare Deployment (Mode A)
+
+This document describes the **production architecture** implemented in this
+repo: the Next.js frontend deployed on **Cloudflare Workers** (via OpenNext),
+talking to an **external Fastify API** that owns Postgres and the ingestion
+pipeline (Mode A). This is the default.
+
+```
+Browser ──► Cloudflare Worker (OpenNext bundling Next.js)
+                │  SSR pages + data fetch (server-side)
+                │  /api/proxy/* (same-origin for browser-originated calls)
+                │  /go (redirect proxy, single click-tracking on the backend)
+                ▼
+        EXTERNAL_API_URL (secret) ──► Fastify API ──► Postgres / Redis
+                                          ▲
+        Cron Worker (refurbcompare-cron) ─┘  (POST /api/v1/admin/sync/:slug)
+```
+
+No backend origin is ever exposed to the browser. Server Components and route
+handlers call the backend through `lib/api-gateway.ts`, which reads the base
+URL from the server-only `EXTERNAL_API_URL` (or the dev
+`NEXT_PUBLIC_API_URL`). Browser clients that must reach the API go through the
+same-origin proxy at `/api/proxy/**`.
+
+## Deployment checklist (GitHub Actions)
+
+Everything below is automated in `.github/workflows/cloudflare.yml` — the repo
+must be pushed to GitHub first (`git init` → add remote → push `main`).
+
+1. **Cloudflare** — create an API token (Dashboard → My Profile → API Tokens →
+   Create Token → "Edit Cloudflare Workers" template) with at least:
+   - Workers Scripts: **Edit**
+   - Workers Routes: **Edit**
+   - Account Settings: **Read**
+   - Workers R2 Storage: **Edit** (incremental cache bucket)
+2. **GitHub secrets** (Repo → Settings → Secrets and variables → Actions): set
+   the four names below.
+3. Push to `main`. The `verify` job runs tests + typechecks, then
+   `deploy-frontend` builds the OpenNext worker, creates the R2 bucket, installs
+   the Mode A secrets into the worker, and deploys it. The worker URL is
+   printed at the end of the run.
+4. Smoke-test the deployed worker:
+   `BASE_URL=https://<worker>.workers.dev npm run cf:smoke`
+5. Attach a custom domain (see below). Cron stays **disabled** until you run the
+   workflow with `deploy_cron=true` — it is deliberately not deployed by default.
+
+### Secrets map
+
+| GitHub secret            | Purpose                                                            |
+| ------------------------ | ------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`   | Token from step 1; same value both jobs                            |
+| `CLOUDFLARE_ACCOUNT_ID`  | 32-hex account id (Dashboard → right-hand sidebar)                 |
+| `EXTERNAL_API_URL`       | Production Fastify base, e.g. `https://api.example.com`            |
+| `API_INTERNAL_TOKEN`     | Shared secret; must equal the backend's `ADMIN_API_KEY`            |
+
+## Custom domain
+
+After the first successful deploy, either route a zone in the Dashboard
+(Workers → your worker → Settings → Domains & Routes → Custom Domain) or via
+CLI (set `ZONE_ID` and `WORKER_URL` in your shell):
+
+```bash
+# Routes on a zone are Dashboard-only for custom-domain, or use a Connector.
+# CLI alternative (third-party DNS zones still proxied via Cloudflare):
+npx wrangler routes list 2>/dev/null || true
+```
+
+Then set the public origin vars to the real domain and redeploy (push → CI):
+
+```bash
+# wrangler.toml
+#   NEXT_PUBLIC_APP_URL = "https://compare.example.com"
+#   FRONTEND_ORIGIN     = "https://compare.example.com"
+```
+
+Clear any old DNS A/CNAME proxy record after attaching the custom domain so
+the worker owns the route.
+
+## Enabling the cron later
+
+When ready, uncomment `[triggers] crons` in `wrangler.cron.toml` and run the
+workflow with **deploy_cron = true**, or deploy locally from a non-Termux
+machine:
+
+```bash
+wrangler deploy --config wrangler.cron.toml
+```
+
+## Mode B (Hyperdrive) — not implemented
+
+`lib/cloudflare-db.ts` defines the `WorkerDatabase` boundary. `API_MODE="external"`
+(Mode A, default) delegates everything to the API. `API_MODE="hyperdrive"`
+selects the Hyperdrive placeholder, which refuses to run until the backend's
+database layer is bundled into the Worker and pointed at Postgres through the
+`HYPERDRIVE` binding. Do not enable it yet.
+
+## Prerequisites
+
+- Node 20+ and npm (normal Linux/macOS/Windows machine; see Termux note below).
+- A Cloudflare account with access to Workers, R2, and Cron Triggers.
+- The Fastify API deployed somewhere reachable (a VPS or a service like Fly.io
+  / Railway / Render), with `ADMIN_API_KEY` set to the same value as
+  `API_INTERNAL_TOKEN`.
+
+## 1. Install
+
+```bash
+npm install          # installs @opennextjs/cloudflare, wrangler (see package.json)
+npx opennextjs-cloudflare init   # one-time; generates/adjusts wrangler.toml
+```
+
+## 2. Build
+
+```bash
+npm run cf:build     # next build && opennextjs-cloudflare build
+```
+
+This produces `.open-next/worker.js` (the Worker entry) and
+`.open-next/assets` (the static assets). The Worker entry is generated by
+OpenNext from our `open-next.config.ts`.
+
+## 3. Configure (wrangler.toml)
+
+The committed `wrangler.toml` sets public vars and bindings; everything
+secret stays out of the repo.
+
+```bash
+# Secrets (Mode A backend + internal token) — create the R2 bucket first
+wrangler r2 bucket create refurbcompare-opennext-cache
+wrangler secret put EXTERNAL_API_URL      # e.g. https://api.example.com
+wrangler secret put API_INTERNAL_TOKEN    # same as backend ADMIN_API_KEY
+
+# Public vars are in wrangler.toml [vars]:
+#   NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_DEMO_MODE="false" (only once a live
+#   authorized source is configured), FRONTEND_ORIGIN, API_MODE="external",
+#   EXTERNAL_API_TIMEOUT_MS.
+```
+
+## 4. Deploy the frontend
+
+```bash
+npm run cf:deploy    # opennextjs-cloudflare deploy
+```
+
+This uploads the worker + assets with wrangler and registers the R2
+incremental cache.
+
+## 5. Cron worker (Mode A scheduled sync) — disabled by default
+
+The sync cron is a separate Worker (the OpenNext-generated worker cannot be
+overridden without a custom build). `wrangler.cron.toml` ships with
+`[triggers] crons` **commented out** — the cron is intentionally inactive on
+first deploy. The workflow never deploys it unless `deploy_cron=true`.
+
+When you want it enabled:
+
+```bash
+wrangler deploy --config wrangler.cron.toml
+wrangler secret put EXTERNAL_API_URL --config wrangler.cron.toml
+wrangler secret put API_INTERNAL_TOKEN --config wrangler.cron.toml
+```
+
+Every 30 minutes (see `[triggers] crons`) it POSTs
+`/api/v1/admin/sync/:slug?mode=SYNC_MODE` for each provider in `SYNC_PROVIDERS`
+with `X-Admin-Key: API_INTERNAL_TOKEN`. `SYNC_MODE` must be a backend enum:
+`MOCK` (demo), `API`, `FEED`, `AUTHORIZED_CRAWL`, or `MANUAL_IMPORT`.
+
+To run the same logic locally (no workerd needed):
+
+```bash
+EXTERNAL_API_URL=http://127.0.0.1:4000 API_INTERNAL_TOKEN=dev-admin-key \
+  npm run cf:cron:run
+```
+
+## 6. Typechecking the worker code
+
+```bash
+npm run cf:typecheck   # tsc -p tsconfig.cloudflare.json
+```
+
+`cloudflare-env.d.ts` declares the `CloudflareEnv` surface (vars, secrets,
+`ASSETS`, `WORKER_SELF_REFERENCE`, R2, Hyperdrive) so `worker-entry` and cron
+code type-check against Workers typings.
+
+## Environment surface
+
+| Variable | When | Description |
+|---|---|---|
+| `EXTERNAL_API_URL` | secret | Mode A backend base; server-only (never in browser) |
+| `API_INTERNAL_TOKEN` | secret | Sent as `X-Admin-Key` to the backend admin endpoints |
+| `API_MODE` | var | `external` (default, Mode A) or `hyperdrive` (Mode B) |
+| `API_INTERNAL_TOKEN` | secret | Internal auth between our own services |
+| `NEXT_PUBLIC_APP_URL` | var | Public site origin |
+| `NEXT_PUBLIC_DEMO_MODE` | var | `true` = noindex + demo disclaimer; `false` only after an authorized live source |
+| `FRONTEND_ORIGIN` | var | Server-only origin for building absolute proxy URLs |
+| `EXTERNAL_API_TIMEOUT_MS` | var | Gateway timeout (default 10000) |
+| `NEXT_PUBLIC_ADSENSE_ENABLED` / `NEXT_PUBLIC_ADSENSE_CLIENT` | var | Ad slots; disabled until both set |
+
+## Data layer & proxy
+
+- `lib/api-gateway.ts` — server-only gateway: base resolution, timeout,
+  envelope parsing, internal-token header. Server Components, `/go`, price
+  alerts and the proxy all use it.
+- `app/api/proxy/[[...path]]` — same-origin forwarder for browser-originated
+  API calls (`/api/proxy/api/v1/...`). Only forwards to whitelisted public
+  prefixes, never forwards client `Authorization`/`X-Admin-Key`, strips
+  internal response headers, honours the gateway timeout.
+- `lib/cloudflare-db.ts` — `WorkerDatabase` boundary (external/mock/Hyperdrive
+  stub).
+- `lib/repo/index.ts` — selects the `api` Repository driver automatically when
+  `EXTERNAL_API_URL` or `NEXT_PUBLIC_API_URL` is present (frontend never reads
+  Postgres directly in Mode A).
+- `components/adsense.tsx` — AdSense slot, rendered only when
+  `NEXT_PUBLIC_ADSENSE_ENABLED=true` and a `ca-pub-*` client is set (Google
+  AdSense only; no affiliate links required).
+
+## Local verification (Termux limits)
+
+`next build`, `npm test`, `npm run typecheck`, `npm run typecheck:api`,
+`npm run cf:typecheck` and live edge-to-edge checks all pass on this machine.
+Two steps cannot run on Android/Termux:
+
+- **`opennextjs-cloudflare build` / `preview` / `deploy`** — the CLI pulls
+  `@ast-grep/napi`, which publishes no Android binary, and `wrangler dev`/
+  `preview` needs the `workerd` binary, which also has no Android build. Run
+  these on CI or a normal Linux/macOS machine — the committed
+  `.github/workflows/cloudflare.yml` does exactly that.
+
+## Smoke test after deploy
+
+```bash
+# against the deployed workers.dev URL (or local 3000 for a dry run)
+BASE_URL=https://refurbcompare.<your-subdomain>.workers.dev npm run cf:smoke
+```
+
+Checks homepage render, `?q=iphone` search, a compare page, the `/api/proxy`
+forwarder, and the `/go` redirect decision (302 when a provider is enabled,
+JSON error envelope forwarded otherwise).
+
+## Cutting over to live data
+
+1. Set `NEXT_PUBLIC_DEMO_MODE="false"` in `[vars]` and redeploy the worker.
+2. Ensure the backend has authorization records + `SYNC_MODE=AUTHORIZED_CRAWL`.
+3. Verify `/api/proxy/api/v1/products`, `/go/...` (302 + single click) and a
+   price-alert write against the live backend before enabling ads.

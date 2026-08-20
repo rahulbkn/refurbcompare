@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.gitignore
+data
+*.db
+*.log
+.env
+tests
+e2e
+scripts
+next.config.*
+next-env.d.ts
+app
+components
+public

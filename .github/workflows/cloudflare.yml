@@ -1,0 +1,125 @@
+# RefurbCompare — Cloudflare Workers deploy (Mode A)
+#
+# Deploys the Next.js frontend to Cloudflare Workers via OpenNext starting from
+# any Linux runner (`npm run opennextjs-cloudflare build/deploy` needs
+# @ast-grep/napi + rclone.js, which publish no Android binaries; it must NOT run
+# on Termux — CI is the supported path).
+#
+# Demo mode: wrangler.toml ships NEXT_PUBLIC_DEMO_MODE="true" (noindex + demo
+# disclaimer). Flip it to "false" in wrangler.toml only once an authorized live
+# feed is configured.
+#
+# Repository secrets required (GitHub -> Settings -> Secrets and variables):
+#   CLOUDFLARE_API_TOKEN   Workers Scripts:Edit, Workers Routes:Edit,
+#                          Account Settings:Read, Workers R2 Storage:Edit
+#   CLOUDFLARE_ACCOUNT_ID  your Cloudflare account id (32-hex)
+#   EXTERNAL_API_URL       production Fastify API base (Mode A backend)
+#   API_INTERNAL_TOKEN     must equal the backend's ADMIN_API_KEY
+#
+# The cron worker (wrangler.cron.toml) is intentionally NOT deployed here —
+# run the "cloudflare-cron" workflow manually when ready.
+
+name: cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_cron:
+        description: "Also deploy the sync cron worker"
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: cloudflare
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run typecheck:api
+      - run: npm run cf:typecheck
+      - name: Ensure no secret URL is baked into the bundle
+        run: |
+          ! grep -Rl "$EXTERNAL_API_URL" .next 2>/dev/null || (echo "EXTERNAL_API_URL leaked into build artifacts" && exit 1)
+        env:
+          EXTERNAL_API_URL: ${{ secrets.EXTERNAL_API_URL }}
+
+  deploy-frontend:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # rclone.js is an optional peer of @opennextjs/cloudflare that is required
+      # by `opennextjs-cloudflare deploy` for asset upload. Install it explicitly
+      # (linux binaries exist; it is the Android platform that is unsupported).
+      - run: npm install -D rclone.js@^0.6.6 --no-save
+      - run: npm run cf:build
+      - name: Create incremental-cache bucket (idempotent)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler r2 bucket create refurbcompare-opennext-cache || true
+      - name: Set Mode A secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          printf %s "${{ secrets.EXTERNAL_API_URL }}" | npx wrangler secret put EXTERNAL_API_URL
+          printf %s "${{ secrets.API_INTERNAL_TOKEN }}" | npx wrangler secret put API_INTERNAL_TOKEN
+      - name: Deploy worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npm run cf:deploy
+      - name: Print deployed worker URL
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler deployments list --json | grep -oE 'https?://[^"]*workers\.dev[^"]*' | head -1 \
+            || echo "deployed (find URL in the Cloudflare Workers dashboard)"
+
+  # Cron/scheduled sync (Mode A). Disabled by default — enable later by
+  # triggering this workflow with deploy_cron=true. The backend's own scheduler
+  # is the alternative once Mode B lands.
+  deploy-cron:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy_cron }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Set cron secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          printf %s "${{ secrets.EXTERNAL_API_URL }}" | npx wrangler secret put EXTERNAL_API_URL \
+            --config wrangler.cron.toml
+          printf %s "${{ secrets.API_INTERNAL_TOKEN }}" | npx wrangler secret put API_INTERNAL_TOKEN \
+            --config wrangler.cron.toml
+      - name: Deploy cron worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy --config wrangler.cron.toml

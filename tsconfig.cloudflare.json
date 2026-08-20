@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["@cloudflare/workers-types", "node"],
+    "noEmit": true,
+    "skipLibCheck": true,
+    "noUnusedLocals": false
+  },
+  "include": [
+    "cloudflare-env.d.ts",
+    "workers/**/*.ts",
+    "lib/api-gateway.ts",
+    "lib/cloudflare-db.ts",
+    "open-next.config.ts",
+    "next.config.ts",
+    "scripts/cf-cron-run.ts",
+    "scripts/cf-smoke.ts"
+  ],
+  "exclude": ["node_modules", "app", "components", ".next", "e2e"]
+}

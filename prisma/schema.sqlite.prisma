@@ -1,0 +1,157 @@
+// RefurbCompare SQLite variant — for local development on normal desktops
+// where Prisma's native engines are available.
+// Use: prisma db push --schema prisma/schema.sqlite.prisma
+// Production uses prisma/schema.prisma (PostgreSQL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  brand       String
+  model       String
+  category    String   @default("smartphone")
+  storage     Int // GB
+  ram         Int?
+  color       String?
+  condition   String
+  releaseYear Int?
+  imageUrl    String?
+  attributes  String? // JSON-encoded
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  listings     Listing[]
+  priceHistory PriceHistoryPoint[]
+  alerts       PriceAlert[]
+
+  @@index([brand])
+  @@index([brand, storage])
+}
+
+model Seller {
+  id                String  @id @default(cuid())
+  slug              String  @unique
+  name              String
+  websiteUrl        String
+  logoUrl           String?
+  tagline           String?
+  rating            Float?
+  reviewCount       Int     @default(0)
+  supportsAffiliate Boolean @default(false)
+  allowRedirects    Boolean @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  listings     Listing[]
+  pricePoints  PriceHistoryPoint[]
+}
+
+model ProviderSetting {
+  id             String   @id @default(cuid())
+  provider       String   @unique
+  label          String
+  sourceType     String   @default("mock")
+  enabled        Boolean  @default(false)
+  config         String? // JSON-encoded
+  lastSyncAt     DateTime?
+  nextSyncAt     DateTime?
+  rowsProcessed  Int      @default(0)
+  disabledReason String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Listing {
+  id            String  @id @default(cuid())
+  productId     String
+  sellerId      String
+  targetUrl     String
+  price         Int
+  originalPrice Int?
+  discountPct   Float?
+  condition     String?
+  storage       Int?
+  inStock       Boolean @default(true)
+  stockStatus   String  @default("in_stock")
+  sellerRating  Float?
+  offerBadge    String?
+  isDemo        Boolean @default(false)
+  fetchedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  seller      Seller  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  pricePoints PriceHistoryPoint[]
+  clicks      Click[]
+
+  @@unique([productId, sellerId])
+  @@index([productId])
+  @@index([sellerId])
+  @@index([price])
+}
+
+model PriceHistoryPoint {
+  id         String   @id @default(cuid())
+  productId  String
+  sellerId   String
+  listingId  String?
+  price      Int
+  recordedAt DateTime @default(now())
+  source     String   @default("seed")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  seller  Seller  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  listing Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  @@index([productId, recordedAt])
+}
+
+model PriceAlert {
+  id          String   @id @default(cuid())
+  productId   String
+  email       String
+  targetPrice Int
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([email])
+}
+
+model Click {
+  id        String   @id @default(cuid())
+  listingId String
+  userAgent String?
+  referer   String?
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([createdAt])
+}
+
+model SyncLog {
+  id           String   @id @default(cuid())
+  provider     String
+  status       String
+  startedAt    DateTime @default(now())
+  finishedAt   DateTime?
+  errorMessage String?
+  rowsAdded    Int      @default(0)
+  rowsUpdated  Int      @default(0)
+
+  @@index([provider, startedAt])
+}

@@ -1,0 +1,48 @@
+// Cloudflare worker config for the RefurbCompare Next.js frontend (Mode A).
+//
+// Generated surface layout follows @opennextjs/cloudflare templates. Secrets
+// (EXTERNAL_API_URL, API_INTERNAL_TOKEN) are NOT committed here — set via:
+//   wrangler secret put EXTERNAL_API_URL
+//   wrangler secret put API_INTERNAL_TOKEN
+// See CLOUDFLARE_DEPLOYMENT.md for the full walkthrough.
+
+name = "refurbcompare"
+main = ".open-next/worker.js"
+compatibility_date = "2026-08-20"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+assets = { directory = ".open-next/assets", binding = "ASSETS" }
+
+# Server-only API base for Mode A (external Fastify). Prefer secrets so the
+# value is not readable from the Worker bundle.
+# EXTERNAL_API_URL is a secret (do not put here).
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://refurbcompare.example.com"
+NEXT_PUBLIC_DEMO_MODE = "true"
+FRONTEND_ORIGIN = "https://refurbcompare.example.com"
+API_MODE = "external"
+EXTERNAL_API_TIMEOUT_MS = "10000"
+
+# Frontend connects to the backend through the same-origin proxy for any
+# browser-originated call; server-side data goes to EXTERNAL_API_URL directly.
+# NEXT_PUBLIC_API_URL = "/api/proxy"
+
+[[r2_buckets]]
+# Incremental cache bucket used by @opennextjs/cloudflare. Create before deploy:
+#   wrangler r2 bucket create refurbcompare-opennext-cache
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "refurbcompare-opennext-cache"
+preview_bucket_name = "refurbcompare-opennext-cache-preview"
+
+# Mode B (Hyperdrive) — NOT enabled. When implementing, uncomment and point at
+# the Postgres used by the backend:
+#   [[hyperdrive]]
+#   binding = "HYPERDRIVE"
+#   id = "<hyperdrive-id>"
+
+# Self-referencing service binding used by OpenNext for cache invalidation.
+# The service name must match `name` above.
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "refurbcompare"

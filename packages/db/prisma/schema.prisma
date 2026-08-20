@@ -1,0 +1,308 @@
+// RefurbCompare production schema (PostgreSQL).
+// Mirrors the repository contract in @refurbcompare/core so any adapter
+// (Prisma/Postgres here, node:sqlite for local dev) satisfies the same interface.
+generator client {
+  provider   = "prisma-client-js"
+  output     = "../generated/client"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------- Enums ----------------
+
+enum ProviderMode {
+  MOCK
+  API
+  FEED
+  AUTHORIZED_CRAWL
+  MANUAL_IMPORT
+  DISABLED
+}
+
+enum ProviderStatus {
+  CONNECTED
+  ERROR
+  DISABLED
+  NOT_CONFIGURED
+}
+
+enum StockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  UNKNOWN
+  ARCHIVED
+}
+
+enum NormalizedCondition {
+  LIKE_NEW
+  EXCELLENT
+  GOOD
+  FAIR
+  REFURBISHED
+  PRE_OWNED
+  UNKNOWN
+}
+
+enum SyncStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum MatchingMethod {
+  EXACT_MODEL_NUMBER
+  BRAND_MODEL_STORAGE
+  BRAND_MODEL_STORAGE_VARIANT
+  FUZZY
+  MANUAL
+  UNMATCHED
+}
+
+enum AlertStatus {
+  ACTIVE
+  TRIGGERED
+  DISABLED
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  VIEWER
+}
+
+// ---------------- Models ----------------
+
+model Provider {
+  id             String   @id
+  name           String
+  slug           String   @unique
+  website        String
+  logoUrl        String?
+  mode           ProviderMode @default(DISABLED)
+  status         ProviderStatus @default(NOT_CONFIGURED)
+  active         Boolean  @default(false)
+  trustScore     Int      @default(50)
+  isDemo         Boolean  @default(false)
+  defaultEnabled Boolean  @default(false)
+  disabledReason String?
+  lastSyncAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  authorization ProviderAuthorization?
+  listings      Listing[]
+  syncJobs       SyncJob[]
+  syncErrors     SyncError[]
+  clicks         ClickEvent[]
+
+  @@index([active])
+}
+
+model ProviderAuthorization {
+  id                     String   @id
+  providerId             String   @unique
+  provider               Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  approved               Boolean  @default(false)
+  authorizationType      String   // API | FEED | AUTHORIZED_CRAWL | MANUAL_IMPORT
+  permittedDomains       String   @default("")
+  permittedPaths         String   @default("")
+  permittedFields        String   @default("")
+  maxRequestsPerMinute   Int      @default(60)
+  termsReviewedAt        DateTime?
+  robotsReviewedAt       DateTime?
+  copyrightDataUseReviewed Boolean @default(false)
+  contactRecorded        Boolean  @default(false)
+  authorizationNotes     String?
+  sourceAttributionRequired Boolean @default(true)
+  expiresAt              DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Product {
+  id                 String   @id
+  brand              String
+  model              String
+  modelNumber        String?
+  variant            String?
+  storage            Int?
+  ram                Int?
+  color              String?
+  network            String?
+  slug               String   @unique
+  imageUrl           String?
+  images             Json     @default("[]")
+  specifications     Json     @default("{}")
+  matchingConfidence Float    @default(0)
+  matchingMethod     MatchingMethod @default(UNMATCHED)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  listings    Listing[]
+  priceAlerts PriceAlert[]
+  clicks      ClickEvent[]
+
+  @@index([brand])
+  @@index([model])
+  @@index([brand, model])
+}
+
+model Listing {
+  id                     String   @id
+  productId              String
+  product                Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  providerId             String
+  provider               Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  sourceProductId        String
+  sourceUrl              String
+  affiliateUrl           String?
+  price                  Int
+  originalPrice          Int?
+  discount               Int?
+  normalizedCondition    NormalizedCondition @default(UNKNOWN)
+  sourceCondition        String?
+  conditionScore         Int      @default(40)
+  conditionDescription   String?
+  warrantyMonths         Int      @default(0)
+  returnDays             Int      @default(0)
+  batteryHealth          Int?
+  stockStatus            StockStatus @default(UNKNOWN)
+  deliveryEstimate       String?
+  sellerName             String   @default("")
+  sellerRating           Float?
+  lastCheckedAt          DateTime @default(now())
+  priceUpdatedAt         DateTime @default(now())
+  consecutiveSyncFailures Int    @default(0)
+  archivedAt             DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  priceHistory PriceHistoryPoint[]
+  clicks       ClickEvent[]
+
+  @@index([sourceProductId])
+  @@index([stockStatus])
+  @@index([productId, stockStatus])
+  @@unique([providerId, sourceProductId])
+  @@index([providerId, sourceProductId])
+}
+
+model PriceHistoryPoint {
+  id         String   @id
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  price      Int
+  recordedAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([listingId, recordedAt])
+  @@index([recordedAt])
+}
+
+model ClickEvent {
+  id            String   @id
+  clickId       String   @unique
+  listingId     String
+  listing       Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  providerId    String
+  provider      Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  referrer      String?
+  deviceType    String?
+  userAgentHash String?
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([createdAt])
+  @@index([providerId, createdAt])
+}
+
+model PriceAlert {
+  id          String      @id
+  productId   String
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  email       String
+  targetPrice Int
+  status      AlertStatus @default(ACTIVE)
+  createdAt   DateTime    @default(now())
+  triggeredAt DateTime?
+
+  @@unique([productId, email])
+  @@index([email])
+}
+
+model SyncJob {
+  id           String       @id
+  providerId   String
+  provider     Provider     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  status       SyncStatus   @default(PENDING)
+  mode         ProviderMode
+  source       String       @default("manual")
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  itemsSeen    Int          @default(0)
+  itemsAdded   Int          @default(0)
+  itemsUpdated Int          @default(0)
+  itemsSkipped Int          @default(0)
+  itemsFailed  Int          @default(0)
+  errorMessage String?
+  createdAt    DateTime     @default(now())
+
+  errors SyncError[]
+
+  @@index([providerId, createdAt])
+}
+
+model SyncError {
+  id         String   @id
+  jobId      String?
+  job        SyncJob? @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  errorCode  String
+  message    String
+  context    String?
+  createdAt  DateTime @default(now())
+
+  @@index([providerId, createdAt])
+}
+
+model SearchQuery {
+  id          String   @id
+  query       String
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([query])
+  @@index([createdAt])
+}
+
+model AdminUser {
+  id           String   @id
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(VIEWER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id           String     @id
+  adminUser    AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  adminUserId  String?
+  action       String
+  entityType   String
+  entityId     String
+  details      String?
+  createdAt    DateTime   @default(now())
+
+  @@index([createdAt])
+}

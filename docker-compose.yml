@@ -1,0 +1,105 @@
+name: refurbcompare
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: refurbcompare
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: refurbcompare
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U refurbcompare"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: node:22-slim
+    working_dir: /app
+    command: sh -c "npx prisma db push --schema=packages/db/prisma/schema.prisma && npx tsx packages/db/prisma/seed.ts"
+    environment:
+      DATABASE_URL: postgresql://refurbcompare:${POSTGRES_PASSWORD:-change-me}@postgres:5432/refurbcompare
+      DATA_MODE: live
+    volumes:
+      - .:/app
+      - monorepo_node_modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["migrate"]
+
+  api:
+    build: .
+    command: ["node", "apps/api/dist/server.js"]
+    ports:
+      - "${API_PORT:-4000}:4000"
+    environment:
+      NODE_ENV: production
+      DATA_MODE: ${DATA_MODE:-live}
+      PORT: 4000
+      HOST: 0.0.0.0
+      DATABASE_DRIVER: prisma
+      DATABASE_URL: postgresql://refurbcompare:${POSTGRES_PASSWORD:-change-me}@postgres:5432/refurbcompare
+      QUEUE_DRIVER: bullmq
+      REDIS_URL: redis://redis:6379
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-change-me-admin}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: ["node", "services/ingestion/dist/bin/worker.js"]
+    environment:
+      NODE_ENV: production
+      DATA_MODE: ${DATA_MODE:-live}
+      DATABASE_DRIVER: prisma
+      DATABASE_URL: postgresql://refurbcompare:${POSTGRES_PASSWORD:-change-me}@postgres:5432/refurbcompare
+      QUEUE_DRIVER: bullmq
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  scheduler:
+    build: .
+    command: ["node", "services/ingestion/dist/bin/scheduler.js"]
+    environment:
+      NODE_ENV: production
+      DATA_MODE: ${DATA_MODE:-live}
+      DATABASE_DRIVER: prisma
+      DATABASE_URL: postgresql://refurbcompare:${POSTGRES_PASSWORD:-change-me}@postgres:5432/refurbcompare
+      QUEUE_DRIVER: bullmq
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  monorepo_node_modules:
