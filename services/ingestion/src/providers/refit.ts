@@ -125,14 +125,10 @@ export class RefitConnector extends BaseConnector {
   }): Promise<ConnectorFetchResult> {
     const ratePerMinute = opts.config?.rateLimit?.maxRequestsPerMinute ?? 20;
     const maxPages = Math.max(1, Number(process.env.REFIT_MAX_PAGES ?? '0') || Infinity);
-    const startPage = opts.nextOffset ?? 1;
-    let produced = 0;
     const items: ProviderProduct[] = [];
     let firstError: unknown = null;
 
-    while (produced < maxPages) {
-      const page = startPage + produced;
-      produced += 1;
+    for (let page = 1; page <= maxPages; page++) {
       try {
         const payload = await this.fetcher.json<{ products: ShopifyProduct[] }>(
           `${FEED_URL}?limit=${PAGE_SIZE}&page=${page}`,
@@ -155,9 +151,9 @@ export class RefitConnector extends BaseConnector {
       throw new Error(`${msg} (refit live fetch)`);
     }
 
-    const nextOffset = startPage + produced;
-    const hasNextPage = produced < maxPages;
-    return { items, hasNextPage, nextOffset };
+    // Single-pass: the full catalog is returned in one call, so the pipeline
+    // must not request another page (avoids re-fetching the whole feed.
+    return { items, hasNextPage: false };
   }
 }
 

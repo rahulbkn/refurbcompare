@@ -1,0 +1,42 @@
+# RefurbCompare — move the 5 real providers to LIVE production data
+#
+# Step 1 (enable-real-providers.ts): flips each provider row to LIVE posture
+# (real website, active, non-demo, robots-reviewed authorization record).
+# Step 2 (sync-real-providers.ts): runs the REAL crawl/feed syncs through the
+# production pipeline at the authorized per-minute rates, then prints live
+# offer counts. The first cashify pass is capped so the job stays inside CI
+# limits; subsequent refreshes can raise the env caps or rely on the scheduler.
+#
+# Run manually from the Actions tab; do NOT run locally on Termux (no Prisma
+# binary). Requires the repository secret RENDER_DATABASE_URL.
+
+name: enable-real-providers
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: enable-real-providers
+  cancel-in-progress: false
+
+jobs:
+  enable-and-sync-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:workspaces
+      - name: Enable real providers (posture + authorization only)
+        env:
+          RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+        run: npx tsx scripts/enable-real-providers.ts
+      - name: First real sync pass (capped cashify, full refit/sahivalue)
+        env:
+          RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+          CASHIFY_MAX_PRODUCTS: '60'
+        run: npx tsx scripts/sync-real-providers.ts
