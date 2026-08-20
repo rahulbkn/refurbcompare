@@ -34,6 +34,7 @@
     "db:push:api": "npm run db:push -w @refurbcompare/db",
     "db:seed:api": "npm run seed -w @refurbcompare/db",
     "typecheck:api": "npm run typecheck -w @refurbcompare/api && npm run typecheck -w @refurbcompare/ingestion && npm run typecheck -w @refurbcompare/core && npm run typecheck -w @refurbcompare/db",
+    "build:workspaces": "npm run db:generate && npm run build -w @refurbcompare/core && npm run build -w @refurbcompare/db && npm run build -w @refurbcompare/ingestion && npm run build -w @refurbcompare/api",
     "cf:build": "next build && opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:dev": "opennextjs-cloudflare preview",

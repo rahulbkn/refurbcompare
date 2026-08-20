@@ -46,6 +46,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build:workspaces
       - run: npm test
       - run: npm run typecheck
       - run: npm run typecheck:api
@@ -66,6 +67,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build:workspaces
       # rclone.js is an optional peer of @opennextjs/cloudflare that is required
       # by `opennextjs-cloudflare deploy` for asset upload. Install it explicitly
       # (linux binaries exist; it is the Android platform that is unsupported).
@@ -109,6 +111,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run build:workspaces
       - name: Set cron secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
