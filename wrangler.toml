@@ -1,10 +1,10 @@
-// Cloudflare worker config for the RefurbCompare Next.js frontend (Mode A).
-//
-// Generated surface layout follows @opennextjs/cloudflare templates. Secrets
-// (EXTERNAL_API_URL, API_INTERNAL_TOKEN) are NOT committed here — set via:
-//   wrangler secret put EXTERNAL_API_URL
-//   wrangler secret put API_INTERNAL_TOKEN
-// See CLOUDFLARE_DEPLOYMENT.md for the full walkthrough.
+# Cloudflare worker config for the RefurbCompare Next.js frontend (Mode A).
+#
+# Generated surface layout follows @opennextjs/cloudflare templates. Secrets
+# (EXTERNAL_API_URL, API_INTERNAL_TOKEN) are NOT committed here — set via:
+#   wrangler secret put EXTERNAL_API_URL
+#   wrangler secret put API_INTERNAL_TOKEN
+# See CLOUDFLARE_DEPLOYMENT.md for the full walkthrough.
 
 name = "refurbcompare"
 main = ".open-next/worker.js"

@@ -2,6 +2,11 @@ import type { MetadataRoute } from "next";
 import { DEMO_MODE } from "@/lib/seo";
 import { getRepository } from "@/lib/repo";
 
+// Product URLs come from the live data source (API gateway in Mode A, DB in
+// dev). Generate the sitemap at request time instead of build time so `next
+// build` never opens a database connection and never requires DATABASE_URL.
+export const dynamic = "force-dynamic";
+
 const STATIC_ROUTES = [
   "",
   "phones",

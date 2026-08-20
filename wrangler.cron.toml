@@ -1,14 +1,14 @@
-// Cron worker for Mode A scheduled provider sync. Deployed side-by-side with
-// the main Next.js worker but as a separate Worker (cannot share the OpenNext
-// generated worker without overriding it).
-//
-//   wrangler deploy --config wrangler.cron.toml
-//   wrangler secret put EXTERNAL_API_URL --config wrangler.cron.toml
-//   wrangler secret put API_INTERNAL_TOKEN --config wrangler.cron.toml
-//
-// Local test (no workerd needed on this machine):
-//   EXTERNAL_API_URL=http://127.0.0.1:4000 API_INTERNAL_TOKEN=dev-admin-key \
-//     npx tsx scripts/cf-cron-run.ts
+# Cron worker for Mode A scheduled provider sync. Deployed side-by-side with
+# the main Next.js worker but as a separate Worker (cannot share the OpenNext
+# generated worker without overriding it).
+#
+#   wrangler deploy --config wrangler.cron.toml
+#   wrangler secret put EXTERNAL_API_URL --config wrangler.cron.toml
+#   wrangler secret put API_INTERNAL_TOKEN --config wrangler.cron.toml
+#
+# Local test (no workerd needed on this machine):
+#   EXTERNAL_API_URL=http://127.0.0.1:4000 API_INTERNAL_TOKEN=dev-admin-key \
+#     npx tsx scripts/cf-cron-run.ts
 
 name = "refurbcompare-cron"
 main = "workers/cron-sync.ts"
