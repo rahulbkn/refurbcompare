@@ -143,6 +143,16 @@ describe('matchProducts', () => {
     expect(match).toBeNull();
   });
 
+  it('never lets brand+storage win when the model token is absent (iPhone 11 != iPhone 13)', () => {
+    const match = matchProducts(CANDIDATES, 'Apple iPhone 11 128GB renewed');
+    expect(match).toBeNull();
+  });
+
+  it('never lets brand+storage win for a different model series (Galaxy A54 != Galaxy S22)', () => {
+    const match = matchProducts(CANDIDATES, 'Samsung Galaxy A54 5G 128GB');
+    expect(match).toBeNull();
+  });
+
   it('keeps the differentiated model when the candidate list carries it', () => {
     const withPro = [
       ...CANDIDATES,

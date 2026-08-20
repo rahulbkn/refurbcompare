@@ -2,6 +2,9 @@ export { ProviderConnector, HealthCheckResult, ConnectorFetchResult, AUTHORIZATI
 export { BaseConnector, type BaseConnectorOpts } from './providers/base.js';
 export { REAL_CONNECTORS, CASHIFY_CONNECTOR, BUDLI_CONNECTOR, REFIT_CONNECTOR, SAHIVALUE_CONNECTOR, MOBILEGOO_CONNECTOR } from './providers/real.js';
 export { parseCashifyProductPage, discoverMobileProductSlugs, CashifyConnector } from './providers/cashify.js';
+export { parseRefitProduct, isRefitPhone, RefitConnector } from './providers/refit.js';
+export { extractZohoCategory, parseSahiValueCategory, SahiValueConnector } from './providers/sahivalue.js';
+export { PoliteFetcher, RobotsDisallowedError, PoliteBlockedError, POLITE_UA } from './http/polite.js';
 export { PROVIDER_REGISTRY, getConnector, listConnectors } from './providers/registry.js';
 
 export { buildSystemConfig, resolveConnector } from './config.js';

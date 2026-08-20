@@ -1,0 +1,76 @@
+<!-- Synthetic Zoho Commerce category page for parser tests.
+     Structure mirrors sahi-value.com category pages: window.zs_category holds
+     the product grid; attributes carry Condition/Storage/Colour; variants hold
+     per-SKU stock + selling price. -->
+<script>
+window.zs_category = {
+  "category_id": "293890000000018034",
+  "name": "Apple iPhone",
+  "handle": "apple",
+  "url": "/categories/apple/293890000000018034",
+  "products": [
+    {
+      "product_id": "293890000036768670",
+      "name": "Apple iPhone 13 Pro 512GB",
+      "handle": "used-refurbished-apple-iphone-13-pro-512gb-664352",
+      "url": "/products/used-refurbished-apple-iphone-13-pro-512gb-664352/293890000036768670",
+      "selling_price": 33999,
+      "label_price": 149900,
+      "is_out_of_stock": false,
+      "is_available_for_purchase": false,
+      "currency_code": "INR",
+      "attributes": [
+        { "name": "Condition", "options": [{ "value": "Refurbished - Good" }] },
+        { "name": "Storage", "options": [{ "value": "512GB" }] },
+        { "name": "Colour", "options": [{ "value": "Graphite" }] }
+      ],
+      "variants": [
+        {
+          "variant_id": "293890000036768670",
+          "sku": "SV-IP13P-512",
+          "selling_price": 33999,
+          "is_out_of_stock": false,
+          "stock_available": 1,
+          "options": [
+            { "name": "Colour", "value": "Graphite" },
+            { "name": "Storage", "value": "512GB" }
+          ]
+        }
+      ]
+    },
+    {
+      "product_id": "293890000036768800",
+      "name": "Apple iPhone 17 Pro Max (New Seal Pack, 12 Months Apple Global Warranty)",
+      "handle": "buy-refurbished-unboxed-apple-iphone-17-pro-max-256gb-512gb-1tb-2tb",
+      "url": "/products/buy-refurbished-unboxed-apple-iphone-17-pro-max-256gb-512gb-1tb-2tb/293890000036768800",
+      "selling_price": 134999,
+      "label_price": 149900,
+      "is_out_of_stock": false,
+      "attributes": [
+        { "name": "Condition", "options": [{ "value": "New - Seal Pack - Global" }] }
+      ],
+      "variants": [
+        {
+          "variant_id": "293890000036768801",
+          "selling_price": 134999,
+          "is_out_of_stock": false,
+          "options": []
+        }
+      ]
+    },
+    {
+      "product_id": "293890000036768900",
+      "name": "Apple iPhone 12 128GB",
+      "handle": "used-refurbished-apple-iphone-12-128gb-881120",
+      "url": "/products/used-refurbished-apple-iphone-12-128gb-881120/293890000036768900",
+      "selling_price": 28999,
+      "is_out_of_stock": true,
+      "attributes": [
+        { "name": "Condition", "options": [{ "value": "Refurbished" }] },
+        { "name": "Storage", "options": [{ "value": "128GB" }] }
+      ],
+      "variants": []
+    }
+  ]
+};
+</script>

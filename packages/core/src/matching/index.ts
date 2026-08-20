@@ -32,6 +32,19 @@ const RAM_PATTERN = /(\d{1,2})\s*gb\s*ram/i;
  */
 const MODEL_DIFFERENTIATORS = new Set(['mini', 'pro', 'plus', 'max', 'ultra', 'lite', 'fe', 'promax']);
 
+/**
+ * Tokens that carry no model identity ("iPhone 13" vs "iPhone 11" both contain
+ * "iphone"; "5G"/"Galaxy" add nothing). A candidate whose discriminating token
+ * is missing from the title must not win on brand+storage points alone, or the
+ * matcher folds iPhone 11 into iPhone 13 and Galaxy A54 into Galaxy S22.
+ */
+const GENERIC_MODEL_TOKENS = new Set([
+  'iphone', 'ipad', 'galaxy', 'pixel', 'phone', 'smartphone', 'smartphones', 'mobile',
+  'moto', 'oneplus', 'xperia', 'zenfone', 'redmi', 'poco', 'realme', 'honor', 'itel',
+  'asus', 'nokia', 'mi', 'tab', 'tablet', '5g', '4g', '3g', 'lte', 'volte', 'cellular',
+  'android', 'ios', 'ios', 'dual', 'sim', 'twin', 'edge', 'a', 's', 'm', 'f', 'c',
+]);
+
 /** Parse a free-text listing title into structured signals. */
 export function parseTitle(title: string, knownBrands: string[]): ParsedTitle {
   const normalized = title.replace(/\s+/g, ' ').trim();
@@ -126,7 +139,12 @@ export function matchProducts(
     .filter((c) => c.brand === parsed.brand)
     .filter((c) => {
       const modelTokens = new Set(tokenize(c.model));
-      return bannedDifferentiators.every((d) => modelTokens.has(d));
+      if (bannedDifferentiators.length && !bannedDifferentiators.every((d) => modelTokens.has(d))) {
+        return false;
+      }
+      const strong = [...modelTokens].filter((t) => !GENERIC_MODEL_TOKENS.has(t));
+      if (strong.length === 0) return true; // no discriminating token — legacy overlap
+      return strong.every((t) => titleTokens.has(t));
     })
     .map<MatchableProduct & { score: number }>((product) => {
       let score = 0;

@@ -1,0 +1,99 @@
+{
+  "products": [
+    {
+      "id": 7483936399594,
+      "title": "Samsung Galaxy S21 FE 5G Refurbished - Brand Box",
+      "handle": "samsung-galaxy-s21-fe-5g-refurbished-brand-box",
+      "body_html": "",
+      "tags": ["tag__custom_5G", "UPDATE"],
+      "product_type": "",
+      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "variants": [
+        {
+          "id": 43111753433226,
+          "title": "Default Title",
+          "price": "19149.00",
+          "compare_at_price": "34999.00",
+          "available": true,
+          "sku": "RF-S21-FE-128",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null
+        }
+      ]
+    },
+    {
+      "id": 7439120212280,
+      "title": "Google Pixel 7A 5G Pre-Owned with 6 Months ReFit Warranty",
+      "handle": "google-pixel-7a-5g-pre-owned-with-6-months-refit-warranty",
+      "body_html": "",
+      "tags": ["android_models", "pre-owned"],
+      "product_type": "",
+      "options": [{ "name": "Storage", "values": ["128 GB"] }],
+      "variants": [
+        {
+          "id": 42984540258616,
+          "title": "128 GB",
+          "price": "23949.00",
+          "compare_at_price": null,
+          "available": true,
+          "sku": "RF-PX7A-128",
+          "option1": "128 GB",
+          "option2": null,
+          "option3": null
+        }
+      ]
+    },
+    {
+      "id": 7439121233492,
+      "title": "Apple iPhone 13 (128 GB) Refurbished",
+      "handle": "apple-iphone-13-128-gb-refurbished",
+      "body_html": "",
+      "tags": ["IOS_Models"],
+      "variants": [
+        {
+          "id": 42984542058744,
+          "title": "128 GB",
+          "price": "36499.00",
+          "compare_at_price": "69900.00",
+          "available": true,
+          "sku": "RF-IP13-128",
+          "option1": "128 GB",
+          "option2": null,
+          "option3": null
+        },
+        {
+          "id": 42984542058745,
+          "title": "128 GB",
+          "price": "0.00",
+          "compare_at_price": null,
+          "available": false,
+          "sku": "RF-IP13-128-OOS",
+          "option1": "128 GB",
+          "option2": null,
+          "option3": null
+        }
+      ]
+    },
+    {
+      "id": 7439122113932,
+      "title": "Dell Latitude 5480 (Intel Core i5 7th Gen 14 Inch) Laptop Refurbished",
+      "handle": "dell-latitude-5480-laptop-refurbished",
+      "body_html": "",
+      "tags": ["Laptop"],
+      "variants": [
+        {
+          "id": 42984544583940,
+          "title": "Default Title",
+          "price": "15849.00",
+          "compare_at_price": null,
+          "available": true,
+          "sku": "RF-DELL-5480",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null
+        }
+      ]
+    }
+  ]
+}
