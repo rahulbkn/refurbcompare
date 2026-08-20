@@ -1,0 +1,35 @@
+name: db migrate
+on:
+  workflow_dispatch:
+
+jobs:
+  generate_and_apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Generate initial migration from schema
+        run: |
+          mkdir -p packages/db/prisma/migrations/20260820_init
+          npx prisma migrate diff \
+            --from-empty \
+            --to-schema-datamodel packages/db/prisma/schema.prisma \
+            --script > packages/db/prisma/migrations/20260820_init/migration.sql
+          test -s packages/db/prisma/migrations/20260820_init/migration.sql
+      - name: Apply migrations to live database
+        env:
+          DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+        run: |
+          npx prisma migrate deploy --schema packages/db/prisma/schema.prisma
+      - name: Commit and push migration files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/db/prisma/migrations
+          git commit -m "record initial Prisma migration" || echo "no changes to commit"
+          git push origin master
