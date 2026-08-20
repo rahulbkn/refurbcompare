@@ -7,7 +7,7 @@
 // Forces DATA_MODE=demo / prisma so TEST rows never cross a live guard, then
 // asserts the pinned iPhone 13 128GB ladder landed for all 5 sellers.
 import { createLogger, loadConfig } from '@refurbcompare/core';
-import { createRepository, demoProductId, demoProviderId, seedDemoCatalog, seedDemoListings } from '@refurbcompare/db';
+import { createRepository, demoProductId, seedDemoCatalog, seedDemoListings } from '@refurbcompare/db';
 
 const LADDER: ReadonlyArray<[string, number]> = [
   ['cashify', 26799],
@@ -58,7 +58,7 @@ async function main() {
     const ok = prices.get(slug) === price;
     if (!ok) failed = true;
     console.log(`${ok ? 'OK ' : 'MISMATCH'} ${slug.padEnd(10)} ${price}   db=${prices.get(slug) ?? 'missing'}`);
-    if (!providersBySlug.has(demoProviderId(slug))) {
+    if (!providersBySlug.has(slug)) {
       console.log(`  -> provider row for ${slug} missing`);
       failed = true;
     }
