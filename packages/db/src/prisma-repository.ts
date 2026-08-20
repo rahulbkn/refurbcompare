@@ -166,8 +166,8 @@ export class PrismaRepository implements Repository {
   readonly driver = 'prisma' as const;
   private client: PrismaClient;
 
-  constructor(client?: PrismaClient) {
-    this.client = client ?? getPrismaClient();
+  constructor(client?: PrismaClient, connectionString?: string) {
+    this.client = client ?? getPrismaClient(connectionString);
   }
 
   async init(): Promise<void> {

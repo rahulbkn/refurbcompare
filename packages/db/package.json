@@ -24,6 +24,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
     "@prisma/client": "^6.5.0",
     "@refurbcompare/core": "*"
   },

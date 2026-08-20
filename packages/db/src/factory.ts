@@ -11,7 +11,7 @@ export function createRepository(config: AppConfig, logger: AppLogger): Reposito
   const modeLine = describeMode(config);
   if (config.databaseDriver === 'prisma') {
     logger.info({ driver: 'prisma' }, `DB: ${modeLine}`);
-    return new PrismaRepository();
+    return new PrismaRepository(undefined, config.databaseUrl);
   }
   logger.info({ driver: 'sqlite', path: config.databaseUrl }, `DB: ${modeLine}`);
   return new SqliteRepository(config.databaseUrl);
