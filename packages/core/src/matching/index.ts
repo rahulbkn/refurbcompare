@@ -24,6 +24,14 @@ export interface ParsedTitle {
 const STORAGE_PATTERN = /(\d{2,3})\s*gb|(\d{1,3})\s*tb/i;
 const RAM_PATTERN = /(\d{1,2})\s*gb\s*ram/i;
 
+/**
+ * Sub-model differentiators that must not fold one device tier into another:
+ * "iPhone 13 Mini" is not "iPhone 13", "Galaxy S23 FE" is not "Galaxy S23".
+ * When a title mentions a differentiator the canonical model does not, the
+ * candidate is excluded instead of merging into the base model.
+ */
+const MODEL_DIFFERENTIATORS = new Set(['mini', 'pro', 'plus', 'max', 'ultra', 'lite', 'fe', 'promax']);
+
 /** Parse a free-text listing title into structured signals. */
 export function parseTitle(title: string, knownBrands: string[]): ParsedTitle {
   const normalized = title.replace(/\s+/g, ' ').trim();
@@ -73,7 +81,14 @@ export interface ProductMatch {
 }
 
 function tokenize(value: string): string[] {
-  return value.toLowerCase().split(/[\s-]+/).filter((t) => t.length > 0);
+  return value.toLowerCase().split(/[\s\-+]+/).filter((t) => t.length > 0);
+}
+
+/** Differentiators present in the title; matching candidates that carry none of
+ * these are excluded so sub-models never fold into their base model. */
+function titleDifferentiators(titleLower: string): string[] {
+  const tokens = new Set(tokenize(titleLower));
+  return [...MODEL_DIFFERENTIATORS].filter((d) => tokens.has(d));
 }
 
 /**
@@ -105,8 +120,14 @@ export function matchProducts(
   }
 
   const titleLower = title.toLowerCase();
+  const titleTokens = new Set(tokenize(titleLower));
+  const bannedDifferentiators = titleDifferentiators(titleLower);
   const results = candidates
     .filter((c) => c.brand === parsed.brand)
+    .filter((c) => {
+      const modelTokens = new Set(tokenize(c.model));
+      return bannedDifferentiators.every((d) => modelTokens.has(d));
+    })
     .map<MatchableProduct & { score: number }>((product) => {
       let score = 0;
 
@@ -115,7 +136,7 @@ export function matchProducts(
       }
 
       const modelTokens = tokenize(product.model);
-      const overlap = modelTokens.filter((token) => titleLower.includes(token)).length;
+      const overlap = modelTokens.filter((token) => titleTokens.has(token)).length;
       score += (overlap / Math.max(modelTokens.length, 1)) * 50;
 
       if (product.color && titleLower.includes(product.color.toLowerCase())) {

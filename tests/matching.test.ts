@@ -132,6 +132,35 @@ describe('matchProducts', () => {
   it('returns null for an EMPTY candidate set', () => {
     expect(matchProducts([], 'Apple iPhone 13 128GB')).toBeNull();
   });
+
+  it('never folds a sub-model into its base model (iPhone 13 Mini != iPhone 13)', () => {
+    const match = matchProducts(CANDIDATES, 'Apple iPhone 13 Mini 128GB renewed');
+    expect(match).toBeNull();
+  });
+
+  it('rejects a different device tier mentioned in the title (Pixel 7 Pro != Pixel 7)', () => {
+    const match = matchProducts(CANDIDATES, 'Google Pixel 7 Pro 128GB Snow');
+    expect(match).toBeNull();
+  });
+
+  it('keeps the differentiated model when the candidate list carries it', () => {
+    const withPro = [
+      ...CANDIDATES,
+      {
+        id: 'prod_google-pixel-7-pro-128gb',
+        brand: 'Google',
+        model: 'Pixel 7 Pro',
+        modelNumber: null,
+        storage: 128,
+        ram: 12,
+        color: null,
+        variant: null,
+      },
+    ];
+    const match = matchProducts(withPro, 'Google Pixel 7 Pro 128GB Snow');
+    expect(match?.product.id).toBe('prod_google-pixel-7-pro-128gb');
+    expect(match?.confidence).toBeGreaterThanOrEqual(MIN_MATCH_CONFIDENCE);
+  });
 });
 
 describe('canonicalizeBrand passthrough', () => {

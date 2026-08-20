@@ -167,12 +167,27 @@ export async function discoverMobileProductSlugs(opts?: { delayMs?: number }): P
     }
   }
   // Preferred products first: matches the canonical catalog so the matcher lands
-  // on high-confidence listings instead of only obscure models.
+  // on high-confidence listings instead of only obscure models. Within a preferred
+  // family the plain base-model slug (renewed-apple-iphone-13) outranks its
+  // sub-model variants (…-mini/-pro/-pro-max) so the matcher never has to choose.
   const preferred = (process.env.CASHIFY_PREFERRED_MODELS ?? 'iphone-13,iphone-12,iphone-14,galaxy-s22,galaxy-s23,pixel-7,pixel-8')
     .split(',')
     .map((p) => p.trim().toLowerCase())
     .filter(Boolean);
-  const order = slugs.sort((a, b) => Number(preferred.some((p) => b.includes(p))) - Number(preferred.some((p) => a.includes(p))));
+  const submodelMarker = ['-mini', '-pro', '-max', '-plus', '-lite', '-ultra', '-fe'];
+  const hasSubModel = (slug: string) => submodelMarker.some((m) => slug.includes(m));
+  const order = slugs.sort((a, b) => {
+    const fa = preferred.findIndex((p) => a.includes(p));
+    const fb = preferred.findIndex((p) => b.includes(p));
+    if (fa === -1 && fb === -1) return a < b ? -1 : a > b ? 1 : 0;
+    if (fa === -1) return 1;
+    if (fb === -1) return -1;
+    if (fa !== fb) return fa - fb;
+    const sa = hasSubModel(a);
+    const sb = hasSubModel(b);
+    if (sa !== sb) return Number(sa) - Number(sb);
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
   cachedMobileSlugs = order;
   return cachedMobileSlugs;
 }
