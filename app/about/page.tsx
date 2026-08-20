@@ -2,21 +2,21 @@ import type { Metadata } from "next";
 import { buildPageMeta, DEMO_MODE } from "@/lib/seo";
 
 export const metadata: Metadata = buildPageMeta({
-  title: "About RefurbCompare",
+  title: "About RefurbMeter",
   canonicalPath: "/about",
   description:
-    "RefurbCompare is an independent comparison platform for refurbished smartphones in India. We never sell, ship or service devices — we compare third-party offers.",
+    "RefurbMeter is an independent comparison platform for refurbished smartphones in India. We never sell, ship or service devices — we compare third-party offers.",
 });
 
 export default function AboutPage() {
   return (
     <div className="container max-w-3xl space-y-8 py-10">
-      <h1 className="text-2xl font-bold">About RefurbCompare</h1>
+      <h1 className="text-2xl font-bold">About RefurbMeter</h1>
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">What we do</h2>
         <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-          RefurbCompare is an independent comparison platform for refurbished
+          RefurbMeter is an independent comparison platform for refurbished
           smartphones in India. We collect offers from multiple third-party
           sellers, normalise condition grades, and show every in-stock price on
           one page so you can pick the cheapest — or the best-value — option.
@@ -31,10 +31,10 @@ export default function AboutPage() {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">How we make money</h2>
         <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-          Some outbound links are affiliate links: when you buy through them, the
-          seller may pay us a commission at no extra cost to you. This funding
-          model keeps the comparison free. We disclose affiliate links clearly
-          and it never changes which offer is cheapest.
+          RefurbMeter is an independent comparison platform. We do not receive
+          commissions or affiliate fees from any seller. Our operating costs are
+          covered independently, and no referral arrangement changes the price
+          you pay or the ranking of offers shown.
         </p>
       </section>
 
@@ -59,8 +59,8 @@ export default function AboutPage() {
         <p className="text-sm leading-relaxed text-[var(--text-muted)]">
           Questions about an offer should go to the seller — they handle orders,
           warranty and returns. For anything about this platform, email{" "}
-          <a href="mailto:hello@refurbcompare.in" className="text-[var(--color-brand-700)] dark:text-brand-300 underline">
-            hello@refurbcompare.in
+          <a href="mailto:hello@refurbmeter.in" className="text-[var(--color-brand-700)] dark:text-brand-300 underline">
+            hello@refurbmeter.in
           </a>
           .
         </p>

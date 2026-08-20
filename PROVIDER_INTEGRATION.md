@@ -1,6 +1,6 @@
 # Provider integration
 
-RefurbCompare gets offers from **provider connectors**, never by unrestricted
+RefurbMeter gets offers from **provider connectors**, never by unrestricted
 scraping. Every connector ships **disabled** and only becomes live once (a) the
 seat runs in a sandbox data mode (`DATA_MODE=demo|mock` → `mode=MOCK`) or (b) a
 complete authorization record is on file for live data.
@@ -94,7 +94,7 @@ Nothing is ever fetched synchronously during a page request.
 ## Onboarding a real seller
 
 1. Get an **authorized** product feed or API (or written permission to use
-   their listing data). RefurbCompare never scrapes without permission.
+   their listing data). RefurbMeter never scrapes without permission.
 2. Implement the connector's `liveFetch` (start from `providers/base.ts`),
    registering it in `providers/registry.ts`.
 3. Store secrets in a secret manager (never in git), read via env; the API key

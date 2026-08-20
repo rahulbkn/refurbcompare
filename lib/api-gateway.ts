@@ -1,4 +1,4 @@
-// Server-only gateway to the RefurbCompare backend API (Fastify).
+// Server-only gateway to the RefurbMeter backend API (Fastify).
 //
 // This is the single seam between the frontend and the backend API. It is only
 // ever executed on the server (Server Components, route handlers, build-time

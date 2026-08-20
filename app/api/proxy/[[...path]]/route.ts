@@ -1,4 +1,4 @@
-// Same-origin API proxy for the RefurbCompare backend.
+// Same-origin API proxy for the RefurbMeter backend.
 //
 // Maps browser requests at /api/proxy/** to the backend API. Used when
 // NEXT_PUBLIC_API_URL is set to "/api/proxy" so clients only ever talk to our

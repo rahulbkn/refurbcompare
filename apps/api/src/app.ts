@@ -43,7 +43,7 @@ export function buildApp(svc: ApiServices) {
 
   app.register(swagger, {
     openapi: {
-      info: { title: 'RefurbCompare API', version: '0.1.0' },
+      info: { title: 'RefurbMeter API', version: '0.1.0' },
       servers: [{ url: `http://${config.host}:${config.port}` }],
     },
   });

@@ -192,8 +192,46 @@ export class PrismaRepository implements Repository {
     if (filter.maxPrice != null) listingWhere.price = { ...(listingWhere.price as object), lte: filter.maxPrice };
     if (filter.condition) listingWhere.normalizedCondition = filter.condition;
 
-    if (filter.minPrice != null || filter.maxPrice != null || filter.condition || filter.inStock != null) {
+    if (filter.minPrice != null || filter.maxPrice != null || filter.condition || filter.inStock != null || filter.liveVisibleOnly) {
       where.listings = { some: listingWhere };
+    }
+
+    const needsJsSort = filter.sort === 'price_asc' || filter.sort === 'price_desc' || filter.sort === 'discount_desc' || filter.sort === 'rating_desc';
+
+    if (needsJsSort) {
+      const rows = await this.client.product.findMany({
+        where,
+        include: { listings: { where: listingWhere } },
+      });
+      const all = rows.map((row) => this.withBest(row));
+      all.sort((a, b) => {
+        switch (filter.sort) {
+          case 'price_asc': {
+            const ap = a.bestPrice ?? Infinity;
+            const bp = b.bestPrice ?? Infinity;
+            return ap - bp;
+          }
+          case 'price_desc': {
+            const ap = a.bestPrice ?? -1;
+            const bp = b.bestPrice ?? -1;
+            return bp - ap;
+          }
+          case 'discount_desc': {
+            const ad = a.bestDiscount ?? -1;
+            const bd = b.bestDiscount ?? -1;
+            return bd - ad;
+          }
+          case 'rating_desc': {
+            const ar = a.bestRating ?? -1;
+            const br = b.bestRating ?? -1;
+            return br - ar;
+          }
+          default:
+            return 0;
+        }
+      });
+      const skip = (filter.page - 1) * filter.pageSize;
+      return { items: all.slice(skip, skip + filter.pageSize), total: all.length };
     }
 
     const [rows, total] = await Promise.all([
@@ -214,11 +252,8 @@ export class PrismaRepository implements Repository {
   private sortOrder(sort?: ProductFilter['sort']): Record<string, unknown>[] {
     switch (sort) {
       case 'price_asc':
-        return [{ listings: { _count: 'desc' } }];
       case 'price_desc':
-        return [{ updatedAt: 'desc' }];
       case 'discount_desc':
-        return [{ updatedAt: 'desc' }];
       case 'rating_desc':
         return [{ updatedAt: 'desc' }];
       default:
@@ -275,11 +310,11 @@ export class PrismaRepository implements Repository {
     return row ? this.withBest(row) : null;
   }
 
-  async listProductsForSync(): Promise<Array<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant'>>> {
+  async listProductsForSync(): Promise<Array<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant' | 'imageUrl'>>> {
     const rows = await this.client.product.findMany({
-      select: { id: true, brand: true, model: true, modelNumber: true, storage: true, ram: true, color: true, variant: true },
+      select: { id: true, brand: true, model: true, modelNumber: true, storage: true, ram: true, color: true, variant: true, imageUrl: true },
     });
-    return rows as unknown as Array<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant'>>;
+    return rows as unknown as Array<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant' | 'imageUrl'>>;
   }
 
   async upsertProduct(input: UpsertProductInput): Promise<Product> {

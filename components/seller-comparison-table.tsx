@@ -110,7 +110,7 @@ export default function SellerComparisonTable({
         </tbody>
       </table>
       <div className="border-t border-[var(--border)] p-3 text-xs text-[var(--text-muted)]">
-        RefurbCompare compares third-party offers for {productName}. You will be
+        RefurbMeter compares third-party offers for {productName}. You will be
         redirected to the seller&apos;s website to complete your purchase. Prices
         and availability may change.
       </div>

@@ -21,7 +21,7 @@ const SITEMAP_INDEX_URL = 'https://smp.cashify.in/uzi1/cashify/refurbished.xml';
 const PRODUCT_PAGE_BASE = 'https://www.cashify.in/buy-refurbished-mobile-phones/';
 const MOBILE_SLUG_PREFIX = '/buy-refurbished-mobile-phones/renewed-';
 const CRAWLER_UA =
-  'RefurbCompareBot/0.1 (authorized price-comparison crawler; contact https://refurbcompare.in/contact)';
+  'RefurbMeterBot/0.1 (authorized price-comparison crawler; contact https://refurbcompare.in/contact)';
 
 const VARIANTS_BLOCK = /<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g;
 

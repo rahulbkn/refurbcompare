@@ -129,7 +129,7 @@ export interface Repository {
   listProducts(filter: ProductFilter): Promise<{ items: ProductWithBest[]; total: number }>;
   getProductBySlug(slug: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null>;
   getProductById(id: string, opts?: { liveVisibleOnly?: boolean }): Promise<ProductWithBest | null>;
-  listProductsForSync(): Promise<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant'>[]>;
+  listProductsForSync(): Promise<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant' | 'imageUrl'>[]>;
   upsertProduct(input: UpsertProductInput): Promise<Product>;
   updateProduct(id: string, patch: Partial<UpsertProductInput>): Promise<Product | null>;
   brandCounts(): Promise<Array<{ brand: string; count: number }>>;

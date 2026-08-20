@@ -2,7 +2,7 @@
   "name": "refurbcompare",
   "version": "0.1.0",
   "private": true,
-  "description": "RefurbCompare — refurbished smartphone price comparison and referral platform (India)",
+  "description": "RefurbMeter — refurbished smartphone price comparison and referral platform (India)",
   "workspaces": [
     "apps/*",
     "packages/*",

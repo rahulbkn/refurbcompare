@@ -1,7 +1,7 @@
 import process from "node:process";
 
 /**
- * Production smoke test for the RefurbCompare backend API (Fastify).
+ * Production smoke test for the RefurbMeter backend API (Fastify).
  *
  * Safe by design:
  *  - GET-only public endpoints (health, products, search, listings, price

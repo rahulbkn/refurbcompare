@@ -7,7 +7,7 @@ import type {
   SystemProviderConfig,
   UpsertListingInput,
 } from '@refurbcompare/core';
-import { matchProducts, normalizeCondition, stableId } from '@refurbcompare/core';
+import { deriveCanonicalProduct, matchProducts, normalizeCondition, stableId } from '@refurbcompare/core';
 import type { ProviderConnector } from './providers/types.js';
 import { buildSystemConfig, resolveConnector } from './config.js';
 
@@ -207,10 +207,66 @@ async function processItem(
   const condition = normalizeCondition(item.condition);
   const match = matchProducts(productsForSync, item.title);
 
-  if (!match || match.confidence < 0.45) {
-    counts.skipped += 1;
-    ctx.logger.debug({ title: item.title }, 'listing skipped: no confident product match');
-    return;
+  let productId: string;
+  if (match && match.confidence >= 0.45) {
+    productId = match.product.id;
+    if (!match.product.imageUrl && item.imageUrl) {
+      await repo.updateProduct(productId, { imageUrl: item.imageUrl }).catch(() => null);
+    }
+  } else {
+    const derived = deriveCanonicalProduct(item.title, {
+      storageGB: item.storageGB ?? undefined,
+      ramGB: item.ramGB ?? undefined,
+      modelNumber: item.modelNumber ?? undefined,
+    });
+    if (!derived) {
+      counts.skipped += 1;
+      ctx.logger.debug({ title: item.title }, 'listing skipped: no confident product match and no derivable catalog identity');
+      return;
+    }
+    const derivedId = stableId('prod', derived.slug);
+    const existing = productsForSync.find((p) => p.id === derivedId);
+    if (existing) {
+      productId = existing.id;
+    } else {
+      let created;
+      try {
+        created = await repo.upsertProduct({
+          id: derivedId,
+          brand: derived.brand,
+          model: derived.model,
+          modelNumber: derived.modelNumber,
+          variant: derived.variant,
+          storage: derived.storage,
+          ram: derived.ram,
+          color: derived.color,
+          slug: derived.slug,
+          imageUrl: item.imageUrl ?? null,
+          images: item.imageUrl ? [item.imageUrl] : [],
+          matchingConfidence: derived.confidence,
+          matchingMethod: derived.method,
+        });
+      } catch (err) {
+        ctx.logger.warn({ err, slug: derived.slug, title: item.title }, 'failed to create catalog product');
+      }
+      if (!created) {
+        counts.skipped += 1;
+        ctx.logger.debug({ title: item.title }, 'listing skipped: could not create catalog product');
+        return;
+      }
+      productsForSync.push({
+        id: created.id,
+        brand: created.brand,
+        model: created.model,
+        modelNumber: created.modelNumber,
+        storage: created.storage,
+        ram: created.ram,
+        color: created.color,
+        variant: created.variant,
+        imageUrl: created.imageUrl,
+      });
+      productId = created.id;
+    }
   }
 
   const now = new Date();
@@ -219,7 +275,7 @@ async function processItem(
 
   const input: UpsertListingInput = {
     id: listingId,
-    productId: match.product.id,
+    productId,
     providerId,
     sourceProductId: item.sourceProductId,
     sourceUrl: item.url,

@@ -14,6 +14,8 @@ export const productQuerySchema = z.object({
   maxPrice: z.coerce.number().int().min(0).optional(),
   sort: z.enum(sortOrders).optional().default("price_asc"),
   limit: z.coerce.number().int().min(1).max(60).optional().default(24),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(24),
 });
 
 export const searchQuerySchema = z.object({

@@ -6,11 +6,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "RefurbCompare — Compare Refurbished Smartphone Prices in India",
-    template: "%s · RefurbCompare",
+    default: "RefurbMeter — Compare Refurbished Smartphone Prices in India",
+    template: "%s · RefurbMeter",
   },
   description:
-    "RefurbCompare compares refurbished smartphone offers from third-party sellers across India so you can find the best price. Independent comparison — we never sell devices ourselves.",
+    "RefurbMeter compares refurbished smartphone offers from third-party sellers across India so you can find the best price. Independent comparison — we never sell devices ourselves.",
   keywords: [
     "refurbished phones",
     "refurbished smartphone",
@@ -51,7 +51,7 @@ function Footer() {
       <div className="container grid gap-8 py-10 md:grid-cols-4">
         <div>
           <p className="text-lg font-bold text-[var(--color-brand-700)] dark:text-brand-300">
-            RefurbCompare
+            RefurbMeter
           </p>
           <p className="mt-2 text-sm text-[var(--text-muted)]">
             Refurbished smartphone price comparison for India.
@@ -90,7 +90,7 @@ function Footer() {
       <div className="border-t border-[var(--border)] py-6">
         <div className="container space-y-3 text-xs text-[var(--text-muted)]">
           <p>
-            RefurbCompare is an independent comparison platform and is not
+            RefurbMeter is an independent comparison platform and is not
             affiliated with any seller unless explicitly stated.
           </p>
           <p>
@@ -98,7 +98,7 @@ function Footer() {
               ? "TEST DATA — NOT LIVE PRICES. Listings shown are synthetic test data; live availability and pricing are not claimed."
               : "Prices and availability are supplied by third-party sellers and may change at any time."}
           </p>
-          <p>© {new Date().getFullYear()} RefurbCompare</p>
+          <p>© {new Date().getFullYear()} RefurbMeter</p>
         </div>
       </div>
     </footer>

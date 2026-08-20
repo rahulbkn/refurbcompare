@@ -4,7 +4,7 @@ const ITEMS = [
   {
     icon: Eye,
     title: "Independent",
-    text: "We never sell devices ourselves — RefurbCompare is an independent comparison platform.",
+    text: "We never sell devices ourselves — RefurbMeter is an independent comparison platform.",
   },
   {
     icon: HandCoins,

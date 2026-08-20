@@ -30,7 +30,7 @@ async function smokeMain() {
   const homeHtml = await home.text();
   smokeRecord(
     "homepage",
-    home.status === 200 && /RefurbCompare|refurbished/i.test(homeHtml),
+    home.status === 200 && /RefurbMeter|refurbished/i.test(homeHtml),
     `status=${home.status}`,
   );
 

@@ -2,7 +2,7 @@
   "name": "@refurbcompare/api",
   "version": "0.1.0",
   "private": true,
-  "description": "Fastify API server (thin HTTP handlers) for RefurbCompare, sitting on the framework-independent core/db packages.",
+  "description": "Fastify API server (thin HTTP handlers) for RefurbMeter, sitting on the framework-independent core/db packages.",
   "type": "module",
   "main": "dist/server.js",
   "scripts": {

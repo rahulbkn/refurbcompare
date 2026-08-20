@@ -5,7 +5,7 @@
 //   catalogue* and the *mock provider feed*.
 // - It is consumed by prisma/seed.ts (Prisma/Postgres) AND the node:sqlite
 //   bootstrap (dev sandbox), so the two never drift.
-// - Prices are sample data: RefurbCompare never claims live prices or
+// - Prices are sample data: RefurbMeter never claims live prices or
 //   scraping. See PROVIDER_INTEGRATION.md.
 
 export type AuthoringProduct = {

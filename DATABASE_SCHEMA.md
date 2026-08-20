@@ -1,6 +1,6 @@
 # Database schema
 
-RefurbCompare keeps **one canonical Prisma schema** and mirrors it for the
+RefurbMeter keeps **one canonical Prisma schema** and mirrors it for the
 dev sandbox:
 
 | Artifact                                   | Driver      | Used where              |

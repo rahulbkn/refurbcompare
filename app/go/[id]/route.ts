@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   if (result.location) {
     const response = NextResponse.redirect(result.location, result.status as 302);
     if (result.demo) {
-      response.headers.set("X-RefurbCompare-Demo", result.demo);
+      response.headers.set("X-RefurbMeter-Demo", result.demo);
     }
     return response;
   }

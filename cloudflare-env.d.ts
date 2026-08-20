@@ -1,4 +1,4 @@
-// Shared Cloudflare Worker bindings for the RefurbCompare deployment.
+// Shared Cloudflare Worker bindings for the RefurbMeter deployment.
 //
 // In wrangler, `[vars]` become plain strings and `wrangler secret put` values
 // are injected at runtime. `CloudflareEnv` mirrors wrangler.toml /

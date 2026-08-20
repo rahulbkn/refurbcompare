@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 
-const SITE_NAME = "RefurbCompare";
+const SITE_NAME = "RefurbMeter";
 const DEFAULT_DESCRIPTION =
   "Compare refurbished smartphone prices across third-party sellers in India and find the best deal. Independent comparison — we never sell devices ourselves.";
 
@@ -47,7 +47,7 @@ export function structuredOfferListing(input: {
     price: input.price,
     priceCurrency: input.currency,
     availability: input.availability,
-    seller: { "@type": "Organization", name: "RefurbCompare" },
+    seller: { "@type": "Organization", name: "RefurbMeter" },
     url: input.url,
   };
 }

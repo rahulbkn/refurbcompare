@@ -1,5 +1,5 @@
 import { MIN_MATCH_CONFIDENCE, type MatchingMethod } from '../types/enums.js';
-import { canonicalizeBrand, extractModelNumber } from '../normalization/model.js';
+import { buildSlug, canonicalizeBrand, extractModelNumber } from '../normalization/model.js';
 import { parseRamGB, parseStorageGB } from '../normalization/storage.js';
 
 export interface MatchableProduct {
@@ -11,6 +11,7 @@ export interface MatchableProduct {
   ram: number | null;
   color: string | null;
   variant: string | null;
+  imageUrl?: string | null;
 }
 
 export interface ParsedTitle {
@@ -91,6 +92,126 @@ export interface ProductMatch {
   storage: number;
   confidence: number; // 0..1
   method: MatchingMethod;
+}
+
+/** Canonical product identity derived from a live listing title that did not
+ * match any known catalog product. Used to grow the catalog from provider data
+ * instead of silently dropping eligible devices. */
+export interface DerivedProduct {
+  brand: string;
+  model: string;
+  modelNumber: string | null;
+  variant: string | null;
+  storage: number | null;
+  ram: number | null;
+  color: string | null;
+  slug: string;
+  confidence: number;
+  method: MatchingMethod;
+}
+
+const BRANDS_FOR_PARSE = [
+  'Apple', 'Samsung', 'Google', 'OnePlus', 'Xiaomi', 'Redmi', 'Poco', 'Oppo', 'Vivo',
+  'Realme', 'Nokia', 'Asus', 'ROG', 'Honor', 'itel', 'Infinix', 'Tecno', 'Nothing', 'Motorola', 'Moto',
+];
+
+type DeriveSignals = {
+  storageGB?: number | null;
+  ramGB?: number | null;
+  modelNumber?: string | null;
+};
+
+/** Words that carry no model identity in a listing title. Kept intentionally
+ * larger than GENERIC_MODEL_TOKENS because derive runs on unmatched titles that
+ * often contain retail filler ("Excel+", "A+ grade", "with box"). */
+const DERIVE_NOISE = new Set([
+  ...GENERIC_MODEL_TOKENS,
+  'new', 'used', 'open', 'box', 'sealed', 'unlocked', 'locked', 'network', 'unlockedonly',
+  'refurbished', 'renewed', 'like', 'mint', 'excellent', 'good', 'fair', 'poor', 'graded',
+  'grade', 'a', 'a+', 'premium', 'certified', 'authorised', 'authorized', 'original', 'genuine',
+  'official', 'condition', 'warranty', 'months', 'days', 'return', 'returns', 'guarantee',
+  'with', 'without', 'and', 'or', 'the', 'from', 'in', 'on', 'for', 'you', 'your', 'upgrade',
+  'offer', 'offers', 'deal', 'deals', 'price', 'rates', 'rate', 'best', 'buy', 'now',
+  'black', 'white', 'silver', 'gold', 'rose', 'midnight', 'starlight', 'graphite', 'space',
+  'blue', 'green', 'purple', 'red', 'pink', 'yellow', 'orange', 'gray', 'grey', 'brown',
+  'titanium', 'sand', 'cream', 'navy', 'teal', 'copper', 'beige', 'olive', 'charcoal',
+  'newer', 'latest', 'demo', 'display', 'piece', 'stock', 'inbox', 'boxed', 'sim', 'tray',
+  'charger', 'charging', 'cable', 'cables', 'usb', 'case', 'cover', 'cover', 'screen',
+  'glass', 'tempered', 'protector', 'guard', 'stand', 'holder', 'earbuds', 'earphone',
+  'headphone', 'headphones', 'adapter', 'sleeve', 'pouch', 'skin', 'bumper', 'strap',
+  'replacement', 'accessory', 'accessories', 'smartwatch', 'band', 'watch',
+]);
+
+const STORAGE_TOKEN_RE = /^\d{1,3}\s*(gb|tb|gigs?|rom)$/i;
+const RAM_TOKEN_RE = /^\d{1,2}\s*gb\s*ram$/i;
+
+/**
+ * Derives a canonical product identity from an unmatched listing title.
+ * Returns null when the title is too ambiguous (no brand, no distinguishing
+ * model token) so we never fabricate junk products from noise titles.
+ */
+export function deriveCanonicalProduct(
+  title: string,
+  signals: DeriveSignals = {},
+): DerivedProduct | null {
+  const parsed = parseTitle(title, BRANDS_FOR_PARSE);
+  if (!parsed.brand) return null;
+
+  const storage = parsed.storage ?? signals.storageGB ?? null;
+  const ram = parsed.ram ?? signals.ramGB ?? null;
+  const modelNumber = parsed.modelNumber ?? signals.modelNumber ?? null;
+
+  const tokens = tokenize(parsed.rest)
+    .map((t) => t.replace(/[^a-z0-9]/g, ''))
+    .filter((t) => t.length > 0 && t !== storage?.toString())
+    .filter((t) => !DERIVE_NOISE.has(t))
+    .filter((t) => !STORAGE_TOKEN_RE.test(t))
+    .filter((t) => !RAM_TOKEN_RE.test(t));
+
+  const differentiators = titleDifferentiators(parsed.rest.toLowerCase()).map((d) => d.toUpperCase());
+  const variant = differentiators.length > 0 ? differentiators.join(' ') : null;
+
+  // Keep only tokens that carry model identity: digit-bearing tokens (s23, a54,
+  // g991, 11, 12 mini) or known words. Numeric tokens that merely echo the parsed
+  // storage (e.g. a bare "128" after "128 GB") are dropped to avoid noise models.
+  const modelTokens = tokens.filter((t) => {
+    if (storage !== null && /^\d+$/.test(t) && Number(t) === storage) return false;
+    return /^[a-z]+\d+/i.test(t) || /\d/.test(t) || MODEL_DIFFERENTIATORS.has(t) || ['se', 'es', 'edge'].includes(t);
+  });
+  let model = modelTokens
+    .map((t) => (MODEL_DIFFERENTIATORS.has(t) ? t.toUpperCase() : t))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!model) return null;
+  model = model
+    .split(' ')
+    .map((w) => (w === w.toUpperCase() ? w : w[0]!.toUpperCase() + w.slice(1)))
+    .join(' ');
+
+  const slug = buildSlug(parsed.brand, model, storage);
+  return {
+    brand: parsed.brand,
+    model,
+    modelNumber,
+    variant,
+    storage,
+    ram,
+    color: parsedColor(parsed.rest),
+    slug,
+    confidence: 0.5,
+    method: 'UNMATCHED',
+  };
+}
+
+function parsedColor(rest: string): string | null {
+  const lower = rest.toLowerCase();
+  const colors = ['midnight', 'starlight', 'graphite', 'silver', 'gold', 'rose', 'blue', 'green', 'purple', 'red', 'pink', 'yellow', 'black', 'white', 'gray', 'grey', 'titanium', 'space black'];
+  const found = colors.find((c) => lower.includes(c));
+  return found
+    ? found.split(' ').map((w) => w[0]?.toUpperCase() + w.slice(1)).join(' ')
+    : null;
 }
 
 function tokenize(value: string): string[] {

@@ -12,7 +12,7 @@ export const metadata = buildPageMeta({
   title: "Compare Refurbished Smartphone Prices in India",
   canonicalPath: "/",
   description:
-    "RefurbCompare compares refurbished smartphone offers from third-party sellers across India. Independent comparison — we never sell devices ourselves.",
+    "RefurbMeter compares refurbished smartphone offers from third-party sellers across India. Independent comparison — we never sell devices ourselves.",
 });
 
 export const dynamic = "force-dynamic";

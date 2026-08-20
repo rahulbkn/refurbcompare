@@ -1,4 +1,4 @@
-// Typed HTTP client for the RefurbCompare backend API (Fastify).
+// Typed HTTP client for the RefurbMeter backend API (Fastify).
 //
 // Only used on the server (Server Components + route handlers). Pages consume
 // data through the Repository adapter (lib/repo/api.ts); this module keeps the

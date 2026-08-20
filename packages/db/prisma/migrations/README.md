@@ -1,6 +1,6 @@
 # Database migrations
 
-RefurbCompare's production mapping is generated from
+RefurbMeter's production mapping is generated from
 `packages/db/prisma/schema.prisma` (PostgreSQL). The embedded Prisma migration
 engine cannot run on Termux/Android (unsupported native binaries), so tracked
 migrations are produced on a Linux laptop or CI — never by hand.

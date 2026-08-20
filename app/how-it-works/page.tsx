@@ -6,7 +6,7 @@ export const metadata: Metadata = buildPageMeta({
   title: "How It Works",
   canonicalPath: "/how-it-works",
   description:
-    "How RefurbCompare works: we compare third-party refurbished phone offers, you choose, and we redirect you to the seller to complete your purchase.",
+    "How RefurbMeter works: we compare third-party refurbished phone offers, you choose, and we redirect you to the seller to complete your purchase.",
 });
 
 const STEPS = [
@@ -59,9 +59,9 @@ export default function HowItWorksPage() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
         <h2 className="font-semibold">The important part</h2>
         <p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-          RefurbCompare never owns or sells devices. Every purchase happens on
-          the seller&apos;s website. Some of our links are affiliate links, which
-          we disclose — they never change the price you pay.{" "}
+          RefurbMeter never owns or sells devices. Every purchase happens on
+          the seller&apos;s website. We do not receive commissions or referral
+          fees from any seller — no arrangement changes the price you pay.{" "}
           <Link href="/disclaimer" className="text-[var(--color-brand-700)] dark:text-brand-300 underline">
             Read the full disclaimer
           </Link>

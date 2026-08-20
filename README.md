@@ -1,12 +1,12 @@
-# RefurbCompare
+# RefurbMeter
 
-RefurbCompare is an independent refurbished-smartphone price **comparison +
+RefurbMeter is an independent refurbished-smartphone price **comparison +
 referral** platform for India. It aggregates offers from third-party sellers,
 normalises condition grades, and shows every in-stock price on one page so
 visitors can pick the cheapest — or best-value — option. Purchases always
 happen on the seller's own website.
 
-> RefurbCompare never owns, sells, ships, services, refunds or warranties
+> RefurbMeter never owns, sells, ships, services, refunds or warranties
 > devices, and never handles payments. It only **compares** and **redirects**.
 
 ## Stack
@@ -81,7 +81,7 @@ writes to `data/dev.db` (see `.env.example`).
 
 ## Business model & disclosure
 
-- RefurbCompare is an independent comparison platform, not affiliated with any
+- RefurbMeter is an independent comparison platform, not affiliated with any
   seller unless explicitly stated.
 - Outbound links may be affiliate links; sellers may pay a commission at no
   extra cost to the visitor. This is disclosed near seller controls and in the

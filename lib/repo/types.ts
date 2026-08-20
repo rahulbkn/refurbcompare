@@ -111,6 +111,8 @@ export type ProductFilter = {
   maxPrice?: number;
   sort?: "price_asc" | "price_desc" | "discount_desc" | "rating_desc" | "newest";
   limit?: number;
+  page?: number;
+  pageSize?: number;
 };
 
 export type Repository = {

@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("RefurbCompare smoke", () => {
+test.describe("RefurbMeter smoke", () => {
   test("home page renders catalogue and demo notice", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/RefurbCompare/);
+    await expect(page).toHaveTitle(/RefurbMeter/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Compare refurbished",
     );

@@ -1,6 +1,6 @@
 # Deployment
 
-RefurbCompare runs a Fastify **API**, an ingestion **worker** and a
+RefurbMeter runs a Fastify **API**, an ingestion **worker** and a
 **scheduler**, with the Next.js frontend optional on top. Storage and queue
 drivers are selected by env; in production you run the full Docker Compose
 stack.

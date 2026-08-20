@@ -263,6 +263,10 @@ export function listProductsSQL(filters: Partial<ProductFilter>): { sql: string;
     where.push('s.bestPrice IS NULL');
   }
 
+  if (filters.liveVisibleOnly === true) {
+    where.push('s.bestPrice IS NOT NULL');
+  }
+
   let sortSql = 'ORDER BY p.createdAt DESC';
   if (filters.sort === 'price_asc') sortSql = 'ORDER BY s.bestPrice ASC NULLS LAST';
   if (filters.sort === 'price_desc') sortSql = 'ORDER BY s.bestPrice DESC NULLS LAST';
@@ -325,8 +329,8 @@ export class SqliteRepository implements Repository {
     return row ? mapProductWithBest(row) : null;
   }
 
-  async listProductsForSync(): Promise<Array<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant'>>> {
-    const rows = this.db.prepare('SELECT id, brand, model, modelNumber, storage, ram, color, variant FROM Product').all() as unknown as Record<string, unknown>[];
+  async listProductsForSync(): Promise<Array<Pick<Product, 'id' | 'brand' | 'model' | 'modelNumber' | 'storage' | 'ram' | 'color' | 'variant' | 'imageUrl'>>> {
+    const rows = this.db.prepare('SELECT id, brand, model, modelNumber, storage, ram, color, variant, imageUrl FROM Product').all() as unknown as Record<string, unknown>[];
     return rows.map((r) => ({
       id: str(r.id),
       brand: str(r.brand),
@@ -336,6 +340,7 @@ export class SqliteRepository implements Repository {
       ram: r.ram == null ? null : num(r.ram),
       color: r.color == null ? null : str(r.color),
       variant: r.variant == null ? null : str(r.variant),
+      imageUrl: r.imageUrl == null ? null : str(r.imageUrl),
     }));
   }
 

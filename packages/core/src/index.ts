@@ -17,9 +17,11 @@ export { canonicalizeBrand, extractModelNumber, buildSlug } from './normalizatio
 export {
   parseTitle,
   matchProducts,
+  deriveCanonicalProduct,
   type MatchableProduct,
   type ParsedTitle,
   type ProductMatch,
+  type DerivedProduct,
 } from './matching/index.js';
 
 export {

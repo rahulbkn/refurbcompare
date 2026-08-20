@@ -5,7 +5,7 @@ export const metadata: Metadata = buildPageMeta({
   title: "Privacy Policy",
   canonicalPath: "/privacy",
   description:
-    "How RefurbCompare handles your data: we store the minimum needed for price alerts, and we never sell your personal information.",
+    "How RefurbMeter handles your data: we store the minimum needed for price alerts, and we never sell your personal information.",
 });
 
 export default function PrivacyPage() {

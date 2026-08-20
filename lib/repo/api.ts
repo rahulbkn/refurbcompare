@@ -1,6 +1,6 @@
 // API-backed Repository adapter.
 //
-// Every method here talks to the RefurbCompare Fastify backend through
+// Every method here talks to the RefurbMeter Fastify backend through
 // lib/api-client.ts and adapts backend DTOs into the frontend's Repository DTOs
 // (lib/repo/types.ts). Pages and components do not change.
 //
@@ -212,7 +212,11 @@ function filterQuery(filter?: ProductFilter): Record<string, unknown> {
 
 export const apiRepository: Repository = {
   async listProducts(filter) {
-    const { data } = await fetchProducts({ ...filterQuery(filter), pageSize: filter?.limit ?? 60 });
+    const { data } = await fetchProducts({
+      ...filterQuery(filter),
+      page: filter?.page ?? 1,
+      pageSize: filter?.pageSize ?? filter?.limit ?? 24,
+    });
     for (const p of data) cacheProductFromApi(p);
     return data.map((p) => productById(p.id) ?? productFromApi(p));
   },
