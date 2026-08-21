@@ -62,8 +62,8 @@ export function extractModelNumber(title: string): string | null {
 }
 
 /** Build a URL-safe slug for a product. */
-export function buildSlug(brand: string, model: string, storageGb: number | null): string {
-  const base = `${brand} ${model}${storageGb ? ` ${storageGb}GB` : ''}`
+export function buildSlug(brand: string, model: string, storageGb: number | null, ramGb?: number | null): string {
+  const base = `${brand} ${model}${storageGb ? ` ${storageGb}GB` : ''}${ramGb ? ` ${ramGb}GB RAM` : ''}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

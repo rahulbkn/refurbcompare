@@ -1,6 +1,5 @@
 import { MIN_MATCH_CONFIDENCE, type MatchingMethod } from '../types/enums.js';
 import { buildSlug, canonicalizeBrand, extractModelNumber } from '../normalization/model.js';
-import { parseRamGB, parseStorageGB } from '../normalization/storage.js';
 
 export interface MatchableProduct {
   id: string;
@@ -22,8 +21,77 @@ export interface ParsedTitle {
   rest: string;
 }
 
-const STORAGE_PATTERN = /(\d{2,3})\s*gb|(\d{1,3})\s*tb/i;
-const RAM_PATTERN = /(\d{1,2})\s*gb\s*ram/i;
+/**
+ * RAM-vs-storage aware capacity extraction. Labeled fragments win ("8GB RAM",
+ * "256GB Storage/ROM"), then paired forms split by magnitude ("12+256GB",
+ * "8/256", "8GB/256GB", "512GB/1TB"), then fused tokens ("12256GB"), then lone
+ * capacity tokens classified by size (RAM <= 24 GB, storage >= 32 GB). RAM is
+ * never reported as storage. All consumed fragments are stripped from the
+ * returned remainder so they cannot leak into derived model names.
+ */
+const RAM_LABELED_RE = /(\d{1,2})\s*(?:gb|g)\s*(?:ram|memory)\b/gi;
+const STORAGE_LABELED_RE = /(\d{1,4}(?:\.\d+)?)\s*(tb|gb|g)\s*(?:storage|rom|internal|emmc|ufs)\b/gi;
+const PAIRED_RE = /\b(\d{1,2})\s*(?:gb|g)?\s*[+/|]\s*(\d{1,4})\s*(gb|tb|g)?(?!\w)/gi;
+const FUSED_RE = /\b(\d{1,2})(64|128|256|512)gb\b/gi;
+const FUSED_UNITED_RE = /\b(\d{1,2})gb(\d{2,4})gb\b/gi;
+// Bare "g" is deliberately excluded: "5G"/"4G" network markers outnumber real
+// "128g" capacity spellings by orders of magnitude.
+const GENERIC_CAP_RE = /(\d{1,4}(?:\.\d+)?)\s*(gb|tb)\b/gi;
+
+function toGB(value: number, unit: string | undefined): number {
+  return unit && unit.toLowerCase() === 'tb' ? value * 1024 : value;
+}
+
+function extractCapacities(text: string): { storage: number | null; ram: number | null; cleaned: string } {
+  let working = text;
+  const ramValues: number[] = [];
+  const storageValues: number[] = [];
+
+  working = working.replace(RAM_LABELED_RE, (_m, v: string) => {
+    ramValues.push(Number(v));
+    return ' ';
+  });
+  working = working.replace(STORAGE_LABELED_RE, (_m, v: string, u: string) => {
+    storageValues.push(toGB(Number(v), u));
+    return ' ';
+  });
+  working = working.replace(PAIRED_RE, (_m, a: string, b: string, ub?: string) => {
+    const va = Number(a);
+    const vb = toGB(Number(b), ub);
+    if (va <= 24 && vb >= 32) {
+      ramValues.push(va);
+      storageValues.push(vb);
+    } else if (vb <= 24 && va >= 32) {
+      ramValues.push(vb);
+      storageValues.push(va);
+    } else if (va >= 32 && vb >= 32) {
+      storageValues.push(Math.max(va, vb));
+    }
+    return ' ';
+  });
+  working = working.replace(FUSED_RE, (_m, a: string, b: string) => {
+    ramValues.push(Number(a));
+    storageValues.push(Number(b));
+    return ' ';
+  });
+  working = working.replace(FUSED_UNITED_RE, (_m, a: string, b: string) => {
+    ramValues.push(Number(a));
+    if (Number(b) >= 32) storageValues.push(Number(b));
+    return ' ';
+  });
+  working = working.replace(GENERIC_CAP_RE, (_m, v: string, u: string) => {
+    const gb = toGB(Number(v), u);
+    if (gb >= 32) storageValues.push(gb);
+    else ramValues.push(gb);
+    return ' ';
+  });
+
+  return {
+    storage: storageValues.length > 0 ? Math.max(...storageValues) : null,
+    ram: ramValues.length > 0 ? Math.min(...ramValues) : null,
+    cleaned: working.replace(/\s+/g, ' ').trim(),
+  };
+}
 
 /**
  * Sub-model differentiators that must not fold one device tier into another:
@@ -49,42 +117,30 @@ const GENERIC_MODEL_TOKENS = new Set([
 /** Parse a free-text listing title into structured signals. */
 export function parseTitle(title: string, knownBrands: string[]): ParsedTitle {
   const normalized = title.replace(/\s+/g, ' ').trim();
+  const cap = extractCapacities(normalized);
+  const remainder = cap.cleaned;
 
-  let storage: number | null = null;
-  const storageMatch = normalized.match(STORAGE_PATTERN);
-  if (storageMatch) {
-    // Prefer a TB group first, else the GB group.
-    const unit = storageMatch[2] !== undefined ? 'tb' : 'gb';
-    const value = storageMatch[2] !== undefined ? storageMatch[2] : storageMatch[1];
-    storage = parseStorageGB(`${value} ${unit}`);
-  }
-
-  let ram: number | null = null;
-  const ramMatch = normalized.match(RAM_PATTERN);
-  if (ramMatch) ram = Number(ramMatch[1]);
-  ram = parseRamGB(ram?.toString()) ?? ram;
-
-  const modelNumber = extractModelNumber(normalized);
+  const modelNumber = extractModelNumber(remainder);
 
   let brand: string | null = null;
-  let rest = normalized;
+  let rest = remainder;
   for (const candidate of knownBrands) {
-    const index = normalized.toLowerCase().indexOf(candidate.toLowerCase());
+    const index = remainder.toLowerCase().indexOf(candidate.toLowerCase());
     if (index >= 0) {
       brand = candidate;
-      rest = normalized.slice(index + candidate.length).trim();
+      rest = remainder.slice(index + candidate.length).trim();
       break;
     }
   }
   if (!brand) {
-    const inferred = canonicalizeBrand(normalized.trim().split(/\s+/)[0]);
+    const inferred = canonicalizeBrand(remainder.trim().split(/\s+/)[0]);
     if (inferred) {
       brand = inferred;
-      rest = normalized.slice(inferred.length).trim();
+      rest = remainder.slice(inferred.length).trim();
     }
   }
 
-  return { brand, modelNumber, storage, ram, rest };
+  return { brand, modelNumber, storage: cap.storage, ram: cap.ram, rest };
 }
 
 export interface ProductMatch {
@@ -218,7 +274,7 @@ export function deriveCanonicalProduct(
     .map((w) => (w === w.toUpperCase() ? w : w[0]!.toUpperCase() + w.slice(1)))
     .join(' ');
 
-  const slug = buildSlug(parsed.brand, model, storage);
+  const slug = buildSlug(parsed.brand, model, storage, ram);
   return {
     brand: parsed.brand,
     model,
@@ -300,6 +356,14 @@ export function matchProducts(
 
       if (parsed.storage !== null && product.storage !== null && product.storage === parsed.storage) {
         score += 40;
+      }
+
+      // RAM variants are distinct SKUs: a title stating its RAM must never
+      // attach to a catalog row with conflicting RAM, and prefers one that
+      // agrees. Rows with unknown RAM stay neutral so legacy data still matches.
+      if (parsed.ram !== null && product.ram !== null) {
+        if (product.ram !== parsed.ram) score -= 100;
+        else score += 5;
       }
 
       const modelTokens = tokenize(product.model);
