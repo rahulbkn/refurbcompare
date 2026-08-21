@@ -68,7 +68,7 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-semibold">Your rights</h2>
         <p className="text-sm leading-relaxed text-[var(--text-muted)]">
           You may request a copy or deletion of the data we hold about you at any
-          time by emailing hello@refurbcompare.in.
+          time by emailing hello@refurbmeter.in.
         </p>
       </section>
     </div>

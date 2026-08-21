@@ -18,8 +18,11 @@ export type ChartSeries = {
   points: Array<{ recordedAt: string; price: number }>;
 };
 
-export default function PriceHistoryChart({ series }: { series: ChartSeries[] }) {
-  // Align all sellers onto a shared (date -> {[seller]: price}) timeline.
+/**
+ * Align every seller onto a shared (date -> {[seller]: price}) timeline,
+ * sorted chronologically. Pure — exported for regression tests.
+ */
+export function alignSeries(series: ChartSeries[]): Array<Record<string, number | string>> {
   const byDate = new Map<string, Record<string, number>>();
   for (const { sellerName, points } of series) {
     for (const point of points) {
@@ -29,9 +32,13 @@ export default function PriceHistoryChart({ series }: { series: ChartSeries[] })
       byDate.set(key, bucket);
     }
   }
-  const data = [...byDate.entries()]
+  return [...byDate.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, values]) => ({ date, ...values }));
+}
+
+export default function PriceHistoryChart({ series }: { series: ChartSeries[] }) {
+  const data = alignSeries(series);
 
   if (data.length === 0) {
     return (
@@ -78,7 +85,9 @@ export default function PriceHistoryChart({ series }: { series: ChartSeries[] })
               dataKey={sellerName}
               stroke={PALETTE[index % PALETTE.length]}
               strokeWidth={2}
-              dot={false}
+              // A single historical point draws no line — show the dot so
+              // valid history is never invisible just because it is sparse.
+              dot={data.length <= 2 ? { r: 4 } : false}
               connectNulls
             />
           ))}

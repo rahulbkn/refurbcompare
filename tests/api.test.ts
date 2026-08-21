@@ -114,6 +114,19 @@ describe('public API', () => {
     expect(Array.isArray(body.scores)).toBe(true);
   });
 
+  it('combines brand + price range + sort consistently', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/products?brand=Apple&minPrice=20000&maxPrice=60000&sort=price_asc&pageSize=50' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    const prices = body.data.map((p: { bestPrice: number | null }) => p.bestPrice).filter((p: number | null) => p !== null);
+    for (const price of prices) {
+      expect(price).toBeGreaterThanOrEqual(20000);
+      expect(price).toBeLessThanOrEqual(60000);
+    }
+    expect(prices).toEqual([...prices].sort((a: number, b: number) => a - b));
+    for (const item of body.data) expect(item.brand).toBe('Apple');
+  });
+
   it('GET /api/v1/deals returns discounted offers only', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/deals?pageSize=20' });
     expect(res.statusCode).toBe(200);
