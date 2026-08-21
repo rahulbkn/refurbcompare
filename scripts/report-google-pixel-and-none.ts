@@ -119,11 +119,17 @@ async function main() {
   }
 
   console.log('\n=== 2. LITERAL "/none" IMAGE VALUES ===');
-  const noneProducts = await prisma.product.findMany({
-    where: { OR: [{ imageUrl: { contains: '/none' } }, { images: { contains: '/none' } }] },
-    select: { id: true, slug: true, imageUrl: true, images: true, brand: true, model: true, storage: true, ram: true, createdAt: true },
+  // `contains` is unsupported on the Json `images` column in Prisma 6, so
+  // fetch all products (small table) and filter here.
+  const allProducts = await prisma.product.findMany({
+    select: { id: true, slug: true, brand: true, model: true, storage: true, ram: true, imageUrl: true, images: true, createdAt: true },
     orderBy: { slug: 'asc' },
   });
+  const noneProducts = allProducts.filter(
+    (p) =>
+      (typeof p.imageUrl === 'string' && p.imageUrl.includes('/none')) ||
+      (Array.isArray(p.images) && (p.images as unknown[]).some((u) => typeof u === 'string' && u.includes('/none'))),
+  );
   console.log(`products containing "/none" in image data: ${noneProducts.length}`);
   for (const p of noneProducts) {
     const listings = await prisma.listing.findMany({
