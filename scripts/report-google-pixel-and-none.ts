@@ -29,14 +29,42 @@ async function main() {
   ]);
   console.log(`products=${totalProducts} listings=${totalListings} priceHistory=${totalHistory}`);
 
+  const listingSelect = {
+    id: true,
+    productId: true,
+    providerId: true,
+    sourceProductId: true,
+    sourceUrl: true,
+    affiliateUrl: true,
+    price: true,
+    originalPrice: true,
+    discount: true,
+    normalizedCondition: true,
+    sourceCondition: true,
+    conditionScore: true,
+    conditionDescription: true,
+    warrantyMonths: true,
+    returnDays: true,
+    batteryHealth: true,
+    stockStatus: true,
+    deliveryEstimate: true,
+    sellerName: true,
+    sellerRating: true,
+    consecutiveSyncFailures: true,
+    archivedAt: true,
+    createdAt: true,
+    lastCheckedAt: true,
+    priceUpdatedAt: true,
+  } as const;
+
   console.log('\n=== 1. GOOGLE-PIXEL PRODUCT ===');
   const pixel = await prisma.product.findFirst({
     where: { slug: 'google-pixel' },
-    include: {
-      listings: {
-        orderBy: { createdAt: 'asc' },
-        include: { provider: true, _count: { select: { priceHistory: true } } },
-      },
+    select: {
+      id: true, slug: true, brand: true, model: true, variant: true,
+      storage: true, ram: true, color: true, network: true, modelNumber: true,
+      imageUrl: true, images: true, matchingMethod: true, matchingConfidence: true,
+      createdAt: true, updatedAt: true,
     },
   });
   if (!pixel) {
@@ -47,8 +75,25 @@ async function main() {
     console.log(`  storage=${pixel.storage} ram=${pixel.ram} color=${JSON.stringify(pixel.color)} network=${JSON.stringify(pixel.network)}`);
     console.log(`  modelNumber=${JSON.stringify(pixel.modelNumber)} matchingMethod=${pixel.matchingMethod} confidence=${pixel.matchingConfidence}`);
     console.log(`  imageUrl=${JSON.stringify(pixel.imageUrl)} images=${JSON.stringify(pixel.images)}`);
-    console.log(`  createdAt=${pixel.createdAt.toISOString()} listings=${pixel.listings.length}`);
-    for (const l of pixel.listings) {
+    console.log(`  createdAt=${pixel.createdAt.toISOString()}`);
+
+    const listings = await prisma.listing.findMany({
+      where: { productId: pixel.id },
+      select: { ...listingSelect, provider: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    const ids = listings.map((l) => l.id);
+    const histCounts = ids.length
+      ? await prisma.priceHistoryPoint.groupBy({
+          by: ['listingId'],
+          _count: { _all: true },
+          where: { listingId: { in: ids } },
+        })
+      : [];
+    const histMap = new Map(histCounts.map((h) => [h.listingId, h._count._all]));
+
+    console.log(`  listings=${listings.length}`);
+    for (const l of listings) {
       console.log(`  --- listing ${l.id}`);
       console.log(`      provider=${l.provider.name} (${l.providerId})`);
       console.log(`      sourceProductId=${JSON.stringify(l.sourceProductId)}`);
@@ -59,61 +104,49 @@ async function main() {
       console.log(`      stock=${l.stockStatus} seller=${JSON.stringify(l.sellerName)} battery=${JSON.stringify(l.batteryHealth)}`);
       console.log(`      warranty=${l.warrantyMonths}m returns=${l.returnDays}d failures=${l.consecutiveSyncFailures} archivedAt=${JSON.stringify(l.archivedAt)}`);
       console.log(`      createdAt=${l.createdAt.toISOString()} lastChecked=${l.lastCheckedAt.toISOString()} priceUpdatedAt=${l.priceUpdatedAt.toISOString()}`);
-      console.log(`      priceHistoryPoints=${l._count.priceHistory}`);
+      console.log(`      priceHistoryPoints=${histMap.get(l.id) ?? 0}`);
     }
   }
 
-  // Any other product whose slug/model mentions pixel but is not the target.
-  console.log('\n=== 1b. OTHER PIXEL PRODUCTS (for mapping candidates) ===');
-  const pixelish = await prisma.product.findMany({
+  console.log('\n=== 1b. OTHER GOOGLE PRODUCTS (mapping candidates) ===');
+  const googleish = await prisma.product.findMany({
     where: { brand: 'Google', slug: { not: 'google-pixel' } },
     select: { id: true, slug: true, model: true, variant: true, storage: true, ram: true, matchingMethod: true },
     orderBy: { slug: 'asc' },
   });
-  for (const p of pixelish) {
+  for (const p of googleish) {
     console.log(`  ${p.slug} | model="${p.model}" variant=${JSON.stringify(p.variant)} storage=${p.storage} ram=${p.ram} method=${p.matchingMethod}`);
   }
 
   console.log('\n=== 2. LITERAL "/none" IMAGE VALUES ===');
   const noneProducts = await prisma.product.findMany({
     where: { OR: [{ imageUrl: { contains: '/none' } }, { images: { contains: '/none' } }] },
-    include: {
-      listings: { include: { provider: true }, orderBy: { createdAt: 'asc' } },
-    },
+    select: { id: true, slug: true, imageUrl: true, images: true, brand: true, model: true, storage: true, ram: true, createdAt: true },
     orderBy: { slug: 'asc' },
   });
   console.log(`products containing "/none" in image data: ${noneProducts.length}`);
   for (const p of noneProducts) {
-    const providers = [...new Set(p.listings.map((l) => l.provider.name))].join(', ');
+    const listings = await prisma.listing.findMany({
+      where: { productId: p.id },
+      select: { providerId: true, provider: { select: { name: true } } },
+    });
+    const providers = [...new Set(listings.map((l) => l.provider.name))].join(', ');
     const imagesArr = Array.isArray(p.images) ? (p.images as unknown[]) : [];
     const noneInArray = imagesArr.filter((u) => typeof u === 'string' && u.includes('/none'));
-    console.log(`  --- ${p.slug} (id=${p.id}) providers=[${providers}] listings=${p.listings.length}`);
+    console.log(`  --- ${p.slug} (id=${p.id}) providers=[${providers}] listings=${listings.length}`);
     console.log(`      imageUrl=${JSON.stringify(p.imageUrl)}`);
     console.log(`      images[]=${JSON.stringify(p.images)}`);
     console.log(`      none-in-array-count=${noneInArray.length} array-length=${imagesArr.length}`);
   }
 
-  // Sanity: any legit-looking URL that merely contains the substring "none"
-  // but is NOT the bare placeholder (must NOT be mutated later).
-  console.log('\n=== 2b. SUBSTRING "none" BUT NOT BARE PLACEHOLDER (must stay untouched) ===');
-  const tricky = await prisma.product.findMany({
-    where: {
-      AND: [
-        { OR: [{ imageUrl: { contains: 'none' } }, { images: { contains: 'none' } }] },
-        { NOT: { imageUrl: '/none' } },
-      ],
-    },
-    select: { id: true, slug: true, imageUrl: true, images: true },
-  });
+  // Any row whose image data mentions "none" but is NOT the bare placeholder:
+  // these must stay untouched.
+  console.log('\n=== 2b. "none" SUBSTRING BUT NOT BARE "/none" imageUrl ===');
+  const tricky = noneProducts.filter((p) => p.imageUrl !== '/none');
+  if (tricky.length === 0) console.log('  (none — every match is either bare "/none" or lives only in images[])');
   for (const p of tricky) {
-    const bare = p.imageUrl === '/none';
-    const arrHasBareOnly =
-      Array.isArray(p.images) &&
-      (p.images as unknown[]).every((u) => typeof u !== 'string' || !u.includes('none') || u === '/none');
-    if (!bare && !(p.imageUrl && p.imageUrl.includes('/none')) && arrHasBareOnly) continue;
     console.log(`  ${p.slug}: imageUrl=${JSON.stringify(p.imageUrl)} images=${JSON.stringify(p.images)}`);
   }
-  console.log(`(tricky rows printed: ${tricky.length} candidates scanned)`);
 
   await prisma.$disconnect();
 }
