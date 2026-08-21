@@ -1,0 +1,19 @@
+name: "Inspect google-pixel + /none images (READ-ONLY)"
+on:
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:workspaces
+      - name: Dump google-pixel listings and /none image rows (read-only)
+        env:
+          RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+        run: npx tsx scripts/report-google-pixel-and-none.ts
