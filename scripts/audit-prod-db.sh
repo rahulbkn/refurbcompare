@@ -57,6 +57,22 @@ echo ""
 echo "--- 5. Product images ---"
 run "Products with imageUrl" "SELECT count(*) FROM \"Product\" WHERE \"imageUrl\" IS NOT NULL AND \"imageUrl\" != '';"
 run "Products without imageUrl" "SELECT count(*) FROM \"Product\" WHERE \"imageUrl\" IS NULL OR \"imageUrl\" = '';"
+echo "  Image coverage by provider of listings:"
+psql "$RENDER_DATABASE_URL" -t -A -q -c "
+  SELECT '    ' || p.\"name\" || ': products=' || count(DISTINCT pr.id)
+         || ', with_image=' || count(DISTINCT pr.id) FILTER (WHERE pr.\"imageUrl\" IS NOT NULL AND pr.\"imageUrl\" != '')
+         || ', listings=' || count(l.id)
+  FROM \"Product\" pr
+  JOIN \"Listing\" l ON l.\"productId\" = pr.id AND l.\"archivedAt\" IS NULL
+  JOIN \"Provider\" p ON p.id = l.\"providerId\"
+  GROUP BY p.\"name\" ORDER BY p.\"name\";
+" 2>&1
+echo "  Sample image hosts:"
+psql "$RENDER_DATABASE_URL" -t -A -q -c "
+  SELECT '    ' || split_part(substring(\"imageUrl\" from 9), '/', 1) || ': ' || count(*)
+  FROM \"Product\" WHERE \"imageUrl\" IS NOT NULL AND \"imageUrl\" != ''
+  GROUP BY 1 ORDER BY count(*) DESC LIMIT 5;
+" 2>&1
 
 # 6. Products with at least one live listing
 echo ""
