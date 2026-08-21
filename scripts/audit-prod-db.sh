@@ -104,6 +104,14 @@ run "Products with ZERO live listings" "
 # 7. Duplicate canonical slugs
 echo ""
 echo "--- 7. Duplicate slugs ---"
+run "Orphan listings (product missing)" "
+  SELECT count(*) FROM \"Listing\" l
+  WHERE NOT EXISTS (SELECT 1 FROM \"Product\" p WHERE p.\"id\" = l.\"productId\");
+"
+run "Orphan price history (listing missing)" "
+  SELECT count(*) FROM \"PriceHistoryPoint\" h
+  WHERE NOT EXISTS (SELECT 1 FROM \"Listing\" l WHERE l.\"id\" = h.\"listingId\");
+"
 run "Duplicate slug count" "
   SELECT count(*) FROM (
     SELECT \"slug\" FROM \"Product\" GROUP BY \"slug\" HAVING count(*) > 1
