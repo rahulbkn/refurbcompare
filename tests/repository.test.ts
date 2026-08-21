@@ -62,14 +62,10 @@ describe('SqliteRepository', () => {
     expect(byId!.listingCount).toBe(0);
   });
 
-  it('listProducts excludes demo offer aggregates in live-visible mode', async () => {
+  it('listProducts excludes zero-offer products in live-visible mode', async () => {
     const { items, total } = await repo.listProducts({ page: 1, pageSize: 100, liveVisibleOnly: true });
-    expect(total).toBe(11);
-    for (const item of items) {
-      expect(item.listingCount).toBe(0);
-      expect(item.bestPrice).toBeNull();
-      expect(item.bestDiscount).toBeNull();
-    }
+    expect(total).toBe(0);
+    expect(items).toEqual([]);
   });
 
   it('lists in-stock listings for a product with relations', async () => {

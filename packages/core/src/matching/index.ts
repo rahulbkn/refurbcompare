@@ -145,6 +145,22 @@ const DERIVE_NOISE = new Set([
 const STORAGE_TOKEN_RE = /^\d{1,3}\s*(gb|tb|gigs?|rom)$/i;
 const RAM_TOKEN_RE = /^\d{1,2}\s*gb\s*ram$/i;
 
+/** Capacity fragments that arrive fused into a single token ("8GB/128GB",
+ * "12+256GB", "8gb128gb", "12256gb") and would otherwise leak into derived
+ * model names. Applied to the title remainder before tokenizing. */
+function stripCapacityFragments(value: string): string {
+  return value
+    .replace(/\b\d{1,2}\s*(?:gb)?\s*[/|]\s*\d{2,4}\s*(?:gb|tb)\b/gi, ' ')
+    .replace(/\b\d{1,2}\s*(?:gb)?\s*\+\s*\d{2,4}\s*(?:gb|tb)\b/gi, ' ')
+    .replace(/\b\d{1,2}gb\d{2,4}gb\b/gi, ' ')
+    .replace(/\b\d{4,6}\s*(?:gb|tb)\b/gi, ' ');
+}
+
+/** Brand-line words stripped by GENERIC_MODEL_TOKENS for matching purposes but
+ * required in a derived display name ("Google 10 Pro" is meaningless without
+ * "Pixel"). Only tokens that ARE the model line for their brand belong here. */
+const DERIVE_MODEL_LINE_TOKENS = new Set(['pixel']);
+
 /**
  * Derives a canonical product identity from an unmatched listing title.
  * Returns null when the title is too ambiguous (no brand, no distinguishing
@@ -161,14 +177,16 @@ export function deriveCanonicalProduct(
   const ram = parsed.ram ?? signals.ramGB ?? null;
   const modelNumber = parsed.modelNumber ?? signals.modelNumber ?? null;
 
-  const tokens = tokenize(parsed.rest)
+  const rest = stripCapacityFragments(parsed.rest);
+
+  const tokens = tokenize(rest)
     .map((t) => t.replace(/[^a-z0-9]/g, ''))
     .filter((t) => t.length > 0 && t !== storage?.toString())
-    .filter((t) => !DERIVE_NOISE.has(t))
+    .filter((t) => !DERIVE_NOISE.has(t) || DERIVE_MODEL_LINE_TOKENS.has(t))
     .filter((t) => !STORAGE_TOKEN_RE.test(t))
     .filter((t) => !RAM_TOKEN_RE.test(t));
 
-  const differentiators = titleDifferentiators(parsed.rest.toLowerCase()).map((d) => d.toUpperCase());
+  const differentiators = titleDifferentiators(rest.toLowerCase()).map((d) => d.toUpperCase());
   const variant = differentiators.length > 0 ? differentiators.join(' ') : null;
 
   // Keep only tokens that carry model identity: digit-bearing tokens (s23, a54,
@@ -176,9 +194,19 @@ export function deriveCanonicalProduct(
   // storage (e.g. a bare "128" after "128 GB") are dropped to avoid noise models.
   const modelTokens = tokens.filter((t) => {
     if (storage !== null && /^\d+$/.test(t) && Number(t) === storage) return false;
-    return /^[a-z]+\d+/i.test(t) || /\d/.test(t) || MODEL_DIFFERENTIATORS.has(t) || ['se', 'es', 'edge'].includes(t);
+    if (ram !== null && /^\d+$/.test(t) && Number(t) === ram) return false;
+    return /^[a-z]+\d+/i.test(t) || /\d/.test(t) || MODEL_DIFFERENTIATORS.has(t) || ['se', 'es', 'edge'].includes(t) || DERIVE_MODEL_LINE_TOKENS.has(t);
   });
-  let model = modelTokens
+  // De-duplicate repeated fragments ("Pro Pro", doubled capacity leftovers)
+  // while preserving first-seen order.
+  const seenTokens = new Set<string>();
+  const uniqueModelTokens = modelTokens.filter((t) => {
+    const key = t.toLowerCase();
+    if (seenTokens.has(key)) return false;
+    seenTokens.add(key);
+    return true;
+  });
+  let model = uniqueModelTokens
     .map((t) => (MODEL_DIFFERENTIATORS.has(t) ? t.toUpperCase() : t))
     .join(' ')
     .replace(/\s+/g, ' ')

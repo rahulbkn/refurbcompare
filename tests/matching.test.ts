@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTitle, matchProducts, canonicalizeBrand, MIN_MATCH_CONFIDENCE } from '@refurbcompare/core';
+import { parseTitle, matchProducts, canonicalizeBrand, MIN_MATCH_CONFIDENCE, deriveCanonicalProduct } from '@refurbcompare/core';
 import type { MatchableProduct } from '@refurbcompare/core';
 
 const CANDIDATES: MatchableProduct[] = [
@@ -177,5 +177,79 @@ describe('canonicalizeBrand passthrough', () => {
   it('is re-exported from the core barrel', () => {
     expect(canonicalizeBrand('poco')).toBe('Xiaomi');
     expect(canonicalizeBrand('samsung')).toBe('Samsung');
+  });
+});
+
+describe('deriveCanonicalProduct name normalization', () => {
+  it('strips fused slash-separated capacity fragments from the model name', () => {
+    const d = deriveCanonicalProduct(
+      'Samsung Galaxy S21 FE 5G (8GB/128GB) 8GB/128GB Phantom Black',
+    );
+    expect(d).not.toBeNull();
+    expect(d!.brand).toBe('Samsung');
+    expect(d!.model).toBe('S21 FE');
+    expect(d!.model).not.toMatch(/gb/i);
+    expect(d!.variant).toBe('FE');
+    expect(d!.storage).toBe(128);
+    expect(d!.slug).toBe('samsung-s21-fe-128gb');
+  });
+
+  it('keeps the Pixel model line in derived Google product names', () => {
+    const d = deriveCanonicalProduct('Google Pixel 10 Pro 16/256GB Obsidian');
+    expect(d).not.toBeNull();
+    expect(d!.brand).toBe('Google');
+    expect(d!.model).toContain('Pixel');
+    expect(d!.model).not.toMatch(/\d{4,}gb/i);
+    expect(d!.variant).toBe('PRO');
+    expect(d!.slug).toBe('google-pixel-10-pro-256gb');
+  });
+
+  it('normalizes plus-separated and pre-concatenated capacity tokens', () => {
+    const plus = deriveCanonicalProduct('Vivo X9s 5G 12+256GB');
+    expect(plus!.model).toBe('X9s');
+    expect(plus!.slug).toBe('vivo-x9s-256gb');
+
+    const fused = deriveCanonicalProduct('Oppo X9s 8gb128gb');
+    expect(fused!.model).toBe('X9s');
+    expect(fused!.model).not.toMatch(/gb/i);
+    expect(fused!.slug).toBe('oppo-x9s-128gb');
+
+    const blob = deriveCanonicalProduct('Realme 13 Pro 12256gb');
+    expect(blob!.model).toBe('13 PRO');
+    expect(blob!.model).not.toMatch(/gb/i);
+  });
+
+  it('removes duplicated capacity/model fragments', () => {
+    const d = deriveCanonicalProduct(
+      'Samsung S21 FE 8GB/128GB 8GB/128GB Unlocked',
+    );
+    expect(d!.model).toBe('S21 FE');
+    expect(d!.model.split('S21').length - 1).toBe(1);
+
+    const dup = deriveCanonicalProduct('OnePlus Nord CE4 Lite Pro Pro 128GB');
+    expect(dup!.model.split(' ').filter((w) => w === 'PRO')).toHaveLength(1);
+  });
+
+  it('keeps variants separated and preserves meaningful model tokens', () => {
+    const cases: Array<[string, string, string | null]> = [
+      ['Apple iPhone 13 Mini 128GB Midnight', '13 MINI', 'MINI'],
+      ['Samsung Galaxy S22 Plus 5G 128GB', 'S22 PLUS', 'PLUS'],
+      ['Xiaomi 14 Ultra 5G 512GB', '14 ULTRA', 'ULTRA'],
+      ['Google Pixel 8 Pro 5G 128GB', 'Pixel 8 PRO', 'PRO'],
+      ['OnePlus 12 Pro Max 16GB+512GB', '12 PRO MAX', 'PRO MAX'],
+    ];
+    for (const [title, model, variant] of cases) {
+      const d = deriveCanonicalProduct(title);
+      expect(d, title).not.toBeNull();
+      expect(d!.model, title).toBe(model);
+      expect(d!.variant, title).toBe(variant);
+    }
+  });
+
+  it('drops bare numeric echoes of parsed storage and ram', () => {
+    const d = deriveCanonicalProduct('Nothing Phone 2 5G 256 GB', { ramGB: 12 });
+    expect(d!.model).toBe('2');
+    expect(d!.storage).toBe(256);
+    expect(d!.ram).toBe(12);
   });
 });

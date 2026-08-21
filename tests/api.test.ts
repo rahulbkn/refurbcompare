@@ -291,15 +291,11 @@ describe('live mode isolation (demo-seeded db promoted to DATA_MODE=live)', () =
     expect(body.data.offers).toHaveLength(0);
   });
 
-  it('keeps the canonical catalog searchable in live mode (products remain)', async () => {
+  it('excludes zero-offer products from the live mode catalog', async () => {
     const res = await liveApp.inject({ method: 'GET', url: '/api/v1/products?pageSize=50' });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.data.length).toBe(11);
-    for (const item of body.data) {
-      expect(item.bestPrice).toBeNull();
-      (item.listingCount as number) >= 0;
-    }
+    expect(body.data.length).toBe(0);
   });
 
   it('serves no demo offers and no best price in live mode price history', async () => {
