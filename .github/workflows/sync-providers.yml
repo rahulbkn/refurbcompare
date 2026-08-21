@@ -1,0 +1,28 @@
+name: Sync Providers (Controlled)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci && npm run build
+      - name: Run sync for all enabled providers
+        run: npx tsx scripts/sync-real-providers.ts
+        env:
+          RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
+          ADMIN_API_KEY: ci-sync-key
+      - name: Install psql
+        if: always()
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run production DB audit
+        if: always()
+        run: bash scripts/audit-prod-db.sh
+        env:
+          RENDER_DATABASE_URL: ${{ secrets.RENDER_DATABASE_URL }}
