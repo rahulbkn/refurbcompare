@@ -33,6 +33,11 @@ run() {
 # 1. Total Product count
 echo "--- 1. Products ---"
 run "Total" "SELECT count(*) FROM \"Product\";"
+echo "  Newest 12 products:"
+psql "$RENDER_DATABASE_URL" -t -A -q -c "
+  SELECT '    ' || substring(cast(\"createdAt\" as text),1,16) || '  ' || name || '  [img=' || coalesce(\"imageUrl\",'none') || ']'
+  FROM \"Product\" ORDER BY \"createdAt\" DESC LIMIT 12;
+" 2>&1
 
 # 2. Total Listing count
 echo ""
