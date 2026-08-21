@@ -197,9 +197,18 @@ export async function runProviderSync(
 type SyncProductCache = Awaited<ReturnType<Repository['listProductsForSync']>>;
 
 /**
+ * Zoho CDN URLs stored before the sized-variant fix 404 in the browser
+ * (bare /product-images/<file>/<id> path). They must be replaced, not kept.
+ */
+function isKnownBrokenImageUrl(url: string): boolean {
+  return /^https:\/\/cdn2\.zohoecommerce\.com\/product-images\/[^/]+\/\d+$/.test(url);
+}
+
+/**
  * Backfill a product's thumbnail from a provider item. Never overwrites an
- * image that is already set (in DB or in the in-memory sync cache) so a
- * valid image can't be clobbered by a null/empty one.
+ * image that is already set (in DB or in the in-memory sync cache) unless the
+ * stored one is known-broken, so valid images can't be clobbered by
+ * null/empty ones but invalid ones get repaired.
  */
 async function backfillProductImage(
   repo: Repository,
@@ -209,7 +218,7 @@ async function backfillProductImage(
 ): Promise<void> {
   if (!imageUrl) return;
   const cached = productsForSync.find((p) => p.id === productId);
-  if (cached?.imageUrl) return;
+  if (cached?.imageUrl && !isKnownBrokenImageUrl(cached.imageUrl)) return;
   await repo.updateProduct(productId, { imageUrl }).catch(() => null);
   if (cached) cached.imageUrl = imageUrl;
 }

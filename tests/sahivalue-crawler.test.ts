@@ -28,11 +28,11 @@ describe('sahivalue connector parser', () => {
     expect(item.currency).toBe('INR');
   });
 
-  it('propagates the Zoho product image as an absolute CDN URL', () => {
+  it('propagates the Zoho product image as an absolute sized CDN URL', () => {
     const html = readFileSync(FIXTURE, 'utf8');
     const items = parseSahiValueCategory(extractZohoCategory(html)!);
     expect(items[0]!.imageUrl).toBe(
-      'https://cdn2.zohoecommerce.com/product-images/apple-iphone-13-pro-graphite/1690000000.jpg',
+      'https://cdn2.zohoecommerce.com/product-images/apple-iphone-13-pro-graphite/1690000000.jpg/400x400?storefront_domain=www.sahivalue.com',
     );
   });
 

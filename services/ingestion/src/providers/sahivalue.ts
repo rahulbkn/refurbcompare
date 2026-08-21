@@ -110,14 +110,19 @@ function isBrandNew(product: ZohoCategoryProduct): boolean {
 }
 
 const ZOHO_CDN_HOST = 'https://cdn2.zohoecommerce.com';
+// The bare /product-images/<file>/<id> path 404s; the CDN only serves sized
+// variants with the storefront domain pinned (matches what the site itself
+// renders in <img src>).
+const ZOHO_IMAGE_SUFFIX = '/400x400?storefront_domain=www.sahivalue.com';
 
 function extractImageUrl(product: ZohoCategoryProduct): string | null {
   const raw = product.images?.find((img) => typeof img.url === 'string' && img.url.length > 0)?.url;
   if (!raw) return null;
-  const url = /^https?:\/\//i.test(raw) ? raw : `${ZOHO_CDN_HOST}${raw.startsWith('/') ? '' : '/'}${raw}`;
   // Zoho's generic "no image" placeholder is not a real product photo.
-  if (/no-preview/i.test(url)) return null;
-  return url;
+  if (/no-preview/i.test(raw)) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const path = raw.startsWith('/') ? raw : `/${raw}`;
+  return `${ZOHO_CDN_HOST}${path}${ZOHO_IMAGE_SUFFIX}`;
 }
 
 export function parseSahiValueCategory(category: ZohoCategory): ProviderProduct[] {

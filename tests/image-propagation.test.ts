@@ -152,3 +152,24 @@ describe('pipeline image propagation', () => {
     expect(upserted[0]!.images).toEqual([IMAGE_A]);
   });
 });
+
+describe('pipeline image repair', () => {
+  it('replaces a known-broken Zoho URL with the sized variant', async () => {
+    const broken = 'https://cdn2.zohoecommerce.com/product-images/IMG_2857.jpg/293890000079297558';
+    const fixed = 'https://cdn2.zohoecommerce.com/product-images/IMG_2857.jpg/293890000079297558/400x400?storefront_domain=www.sahivalue.com';
+    const row = syncRow({ imageUrl: broken });
+    const { ctx, connector, updated } = fakeCtx([row]);
+    await run(ctx, connector, [row], item({ imageUrl: fixed }));
+
+    expect(updated).toHaveLength(1);
+    expect(updated[0]!.patch).toEqual({ imageUrl: fixed });
+    expect(row.imageUrl).toBe(fixed);
+  });
+
+  it('still refuses to overwrite valid images with other valid images', async () => {
+    const row = syncRow({ imageUrl: IMAGE_B });
+    const { ctx, connector, updated } = fakeCtx([row]);
+    await run(ctx, connector, [row], item({ imageUrl: IMAGE_A }));
+    expect(updated).toHaveLength(0);
+  });
+});
