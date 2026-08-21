@@ -194,11 +194,31 @@ export async function runProviderSync(
   }
 }
 
-async function processItem(
+type SyncProductCache = Awaited<ReturnType<Repository['listProductsForSync']>>;
+
+/**
+ * Backfill a product's thumbnail from a provider item. Never overwrites an
+ * image that is already set (in DB or in the in-memory sync cache) so a
+ * valid image can't be clobbered by a null/empty one.
+ */
+async function backfillProductImage(
+  repo: Repository,
+  productsForSync: SyncProductCache,
+  productId: string,
+  imageUrl: string | null | undefined,
+): Promise<void> {
+  if (!imageUrl) return;
+  const cached = productsForSync.find((p) => p.id === productId);
+  if (cached?.imageUrl) return;
+  await repo.updateProduct(productId, { imageUrl }).catch(() => null);
+  if (cached) cached.imageUrl = imageUrl;
+}
+
+export async function processItem(
   ctx: SyncRunContext,
   connector: ProviderConnector,
   providerId: string,
-  productsForSync: Awaited<ReturnType<Repository['listProductsForSync']>>,
+  productsForSync: SyncProductCache,
   item: ProviderProduct,
   counts: { seen: number; added: number; updated: number; skipped: number; failed: number },
 ): Promise<void> {
@@ -210,9 +230,7 @@ async function processItem(
   let productId: string;
   if (match && match.confidence >= 0.45) {
     productId = match.product.id;
-    if (!match.product.imageUrl && item.imageUrl) {
-      await repo.updateProduct(productId, { imageUrl: item.imageUrl }).catch(() => null);
-    }
+    await backfillProductImage(repo, productsForSync, productId, item.imageUrl);
   } else {
     const derived = deriveCanonicalProduct(item.title, {
       storageGB: item.storageGB ?? undefined,
@@ -228,6 +246,7 @@ async function processItem(
     const existing = productsForSync.find((p) => p.id === derivedId);
     if (existing) {
       productId = existing.id;
+      await backfillProductImage(repo, productsForSync, productId, item.imageUrl);
     } else {
       let created;
       try {

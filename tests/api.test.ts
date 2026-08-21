@@ -77,6 +77,34 @@ describe('public API', () => {
     expect(res.json().data.slug).toBe('apple-iphone-13-128gb');
   });
 
+  it('exposes imageUrl on list, detail, and search DTOs', async () => {
+    const image = 'https://cdn.shopify.com/s/files/1/0606/9204/3823/products/test.jpg';
+    await services.repo.upsertProduct({
+      id: 'prod_imgtest',
+      brand: 'Samsung',
+      model: 'Galaxy S21 FE',
+      slug: 'samsung-galaxy-s21-fe-image-test',
+      imageUrl: image,
+      images: [image],
+      matchingConfidence: 0.5,
+      matchingMethod: 'MANUAL',
+    });
+
+    const list = await app.inject({ method: 'GET', url: '/api/v1/products?pageSize=50' });
+    expect(list.statusCode).toBe(200);
+    const listed = list.json().data.find((p: { slug: string }) => p.slug === 'samsung-galaxy-s21-fe-image-test');
+    expect(listed.imageUrl).toBe(image);
+
+    const detail = await app.inject({ method: 'GET', url: '/api/v1/products/samsung-galaxy-s21-fe-image-test' });
+    expect(detail.statusCode).toBe(200);
+    expect(detail.json().data.imageUrl).toBe(image);
+
+    const search = await app.inject({ method: 'GET', url: '/api/v1/search?q=s21' });
+    expect(search.statusCode).toBe(200);
+    const hit = search.json().data.find((p: { slug: string }) => p.slug === 'samsung-galaxy-s21-fe-image-test');
+    expect(hit.imageUrl).toBe(image);
+  });
+
   it('GET /api/v1/products/:slug/listings returns a comparison', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/products/apple-iphone-13-128gb/listings' });
     expect(res.statusCode).toBe(200);

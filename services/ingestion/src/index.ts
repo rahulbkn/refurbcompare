@@ -8,7 +8,7 @@ export { PoliteFetcher, RobotsDisallowedError, PoliteBlockedError, POLITE_UA } f
 export { PROVIDER_REGISTRY, getConnector, listConnectors } from './providers/registry.js';
 
 export { buildSystemConfig, resolveConnector } from './config.js';
-export { runProviderSync, type SyncRunContext, type SyncRunResult } from './pipeline.js';
+export { runProviderSync, processItem, type SyncRunContext, type SyncRunResult } from './pipeline.js';
 export { createIngestionQueue, BullMqQueue } from './queue/index.js';
 export { startWorker } from './worker.js';
 export { startScheduler } from './scheduler.js';

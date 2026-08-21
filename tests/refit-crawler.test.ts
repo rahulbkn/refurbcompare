@@ -33,6 +33,18 @@ describe('refit connector parser', () => {
     expect(items[0]!.storageGB).toBe(128);
   });
 
+  it('propagates the Shopify product image to every offer', () => {
+    const items = parseRefitProduct(products().find((p) => p.handle.includes('samsung-galaxy-s21'))!);
+    expect(items[0]!.imageUrl).toBe(
+      'https://cdn.shopify.com/s/files/1/0606/9204/3823/products/s21fe.jpg?v=1690000000',
+    );
+  });
+
+  it('leaves imageUrl null when the feed has no images', () => {
+    const items = parseRefitProduct(products().find((p) => p.handle.includes('google-pixel-7a'))!);
+    expect(items[0]!.imageUrl).toBeNull();
+  });
+
   it('skips zero-price and sold-out variants (keeps only live offer on multi-variant products)', () => {
     const items = parseRefitProduct(products().find((p) => p.handle.includes('apple-iphone-13'))!);
     expect(items).toHaveLength(1);

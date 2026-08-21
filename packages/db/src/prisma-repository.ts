@@ -337,7 +337,12 @@ export class PrismaRepository implements Repository {
     const row = await this.client.product.upsert({
       where: { id: input.id },
       create: { ...data, id: input.id },
-      update: data,
+      update: {
+        ...data,
+        // Never clobber an existing thumbnail with a null/empty one.
+        imageUrl: data.imageUrl || undefined,
+        images: (input.images ?? []).length > 0 ? (input.images as never) : undefined,
+      },
     });
     return toProduct(row as unknown as Parameters<typeof toProduct>[0]);
   }

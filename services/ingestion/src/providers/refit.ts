@@ -27,6 +27,7 @@ export interface ShopifyProduct {
   body_html?: string;
   product_type?: string;
   tags?: string[];
+  images?: Array<{ src?: string | null }>;
   options?: Array<{ name: string; values: string[] }>;
   variants?: Array<{
     id: number;
@@ -83,7 +84,7 @@ export function parseRefitProduct(product: ShopifyProduct): ProviderProduct[] {
       returnDays: 0,
       stockStatus: variant.available === true ? 'IN_STOCK' : 'UNKNOWN',
       url: `https://refitglobal.com/products/${product.handle}`,
-      imageUrl: null,
+      imageUrl: product.images?.[0]?.src ?? null,
       sellerName: 'ReFit Global',
       availability: 'Refurbished with 6-month ReFit warranty',
       lastUpdated: new Date(),

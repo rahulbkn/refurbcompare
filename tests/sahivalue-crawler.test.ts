@@ -27,4 +27,24 @@ describe('sahivalue connector parser', () => {
     expect(item.sourceProductId).toBe('zoho-SV-IP13P-512');
     expect(item.currency).toBe('INR');
   });
+
+  it('propagates the Zoho product image as an absolute CDN URL', () => {
+    const html = readFileSync(FIXTURE, 'utf8');
+    const items = parseSahiValueCategory(extractZohoCategory(html)!);
+    expect(items[0]!.imageUrl).toBe(
+      'https://cdn2.zohoecommerce.com/product-images/apple-iphone-13-pro-graphite/1690000000.jpg',
+    );
+  });
+
+  it('treats the Zoho no-preview placeholder as "no image"', () => {
+    const html = readFileSync(FIXTURE, 'utf8');
+    const category = extractZohoCategory(html)!;
+    // Force the iPhone 12 (placeholder image) through the offer path.
+    const p12 = category.products!.find((p) => p.name === 'Apple iPhone 12 128GB')!;
+    p12.is_out_of_stock = false;
+    p12.selling_price = 29999;
+    const items = parseSahiValueCategory(category);
+    const fromP12 = items.find((i) => i.title === 'Apple iPhone 12 128GB')!;
+    expect(fromP12.imageUrl).toBeNull();
+  });
 });

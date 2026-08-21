@@ -5,9 +5,19 @@
       "title": "Samsung Galaxy S21 FE 5G Refurbished - Brand Box",
       "handle": "samsung-galaxy-s21-fe-5g-refurbished-brand-box",
       "body_html": "",
-      "tags": ["tag__custom_5G", "UPDATE"],
+      "tags": [
+        "tag__custom_5G",
+        "UPDATE"
+      ],
       "product_type": "",
-      "options": [{ "name": "Title", "values": ["Default Title"] }],
+      "options": [
+        {
+          "name": "Title",
+          "values": [
+            "Default Title"
+          ]
+        }
+      ],
       "variants": [
         {
           "id": 43111753433226,
@@ -20,6 +30,11 @@
           "option2": null,
           "option3": null
         }
+      ],
+      "images": [
+        {
+          "src": "https://cdn.shopify.com/s/files/1/0606/9204/3823/products/s21fe.jpg?v=1690000000"
+        }
       ]
     },
     {
@@ -27,9 +42,19 @@
       "title": "Google Pixel 7A 5G Pre-Owned with 6 Months ReFit Warranty",
       "handle": "google-pixel-7a-5g-pre-owned-with-6-months-refit-warranty",
       "body_html": "",
-      "tags": ["android_models", "pre-owned"],
+      "tags": [
+        "android_models",
+        "pre-owned"
+      ],
       "product_type": "",
-      "options": [{ "name": "Storage", "values": ["128 GB"] }],
+      "options": [
+        {
+          "name": "Storage",
+          "values": [
+            "128 GB"
+          ]
+        }
+      ],
       "variants": [
         {
           "id": 42984540258616,
@@ -49,7 +74,9 @@
       "title": "Apple iPhone 13 (128 GB) Refurbished",
       "handle": "apple-iphone-13-128-gb-refurbished",
       "body_html": "",
-      "tags": ["IOS_Models"],
+      "tags": [
+        "IOS_Models"
+      ],
       "variants": [
         {
           "id": 42984542058744,
@@ -80,7 +107,9 @@
       "title": "Dell Latitude 5480 (Intel Core i5 7th Gen 14 Inch) Laptop Refurbished",
       "handle": "dell-latitude-5480-laptop-refurbished",
       "body_html": "",
-      "tags": ["Laptop"],
+      "tags": [
+        "Laptop"
+      ],
       "variants": [
         {
           "id": 42984544583940,

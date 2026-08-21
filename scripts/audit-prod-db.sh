@@ -69,9 +69,11 @@ psql "$RENDER_DATABASE_URL" -t -A -q -c "
 " 2>&1
 echo "  Sample image hosts:"
 psql "$RENDER_DATABASE_URL" -t -A -q -c "
-  SELECT '    ' || split_part(substring(\"imageUrl\" from 9), '/', 1) || ': ' || count(*)
-  FROM \"Product\" WHERE \"imageUrl\" IS NOT NULL AND \"imageUrl\" != ''
-  GROUP BY 1 ORDER BY count(*) DESC LIMIT 5;
+  SELECT '    ' || host || ': ' || n FROM (
+    SELECT split_part(substring(\"imageUrl\" from 9), '/', 1) AS host, count(*) AS n
+    FROM \"Product\" WHERE \"imageUrl\" IS NOT NULL AND \"imageUrl\" != ''
+    GROUP BY 1 ORDER BY n DESC LIMIT 5
+  ) t;
 " 2>&1
 
 # 6. Products with at least one live listing

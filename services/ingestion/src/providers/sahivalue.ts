@@ -37,6 +37,7 @@ interface ZohoCategoryProduct {
   is_available_for_purchase?: boolean;
   brand?: string;
   currency_code?: string;
+  images?: Array<{ url?: string }>;
   attributes?: Array<{ name?: string; options?: Array<{ value?: string }> }>;
   variants?: Array<{
     variant_id?: string;
@@ -108,6 +109,17 @@ function isBrandNew(product: ZohoCategoryProduct): boolean {
   return value.startsWith('new') || value.includes('seal pack');
 }
 
+const ZOHO_CDN_HOST = 'https://cdn2.zohoecommerce.com';
+
+function extractImageUrl(product: ZohoCategoryProduct): string | null {
+  const raw = product.images?.find((img) => typeof img.url === 'string' && img.url.length > 0)?.url;
+  if (!raw) return null;
+  const url = /^https?:\/\//i.test(raw) ? raw : `${ZOHO_CDN_HOST}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  // Zoho's generic "no image" placeholder is not a real product photo.
+  if (/no-preview/i.test(url)) return null;
+  return url;
+}
+
 export function parseSahiValueCategory(category: ZohoCategory): ProviderProduct[] {
   const items: ProviderProduct[] = [];
   for (const product of category.products ?? []) {
@@ -144,7 +156,7 @@ export function parseSahiValueCategory(category: ZohoCategory): ProviderProduct[
         returnDays: 7,
         stockStatus: 'IN_STOCK',
         url: `${SITE}${product.url!}${opts.variantSku ? `?variant=${encodeURIComponent(opts.variantSku)}` : ''}`,
-        imageUrl: null,
+        imageUrl: extractImageUrl(product),
         sellerName: 'SahiValue',
         availability: 'Refurbished phone sold via SahiValue',
         lastUpdated: new Date(),

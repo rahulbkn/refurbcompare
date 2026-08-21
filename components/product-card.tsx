@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ProductDto } from "@/lib/repo/types";
 import { formatINR } from "@/lib/format";
+import ProductImage from "@/components/product-image";
 
 export type ProductCardProduct = ProductDto & { bestPrice?: number | null };
 
@@ -12,18 +13,12 @@ export default function ProductCard({ product }: { product: ProductCardProduct }
       href={`/phones/${product.slug}`}
       className="group flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-shadow hover:shadow-md"
     >
-      <div className="mb-3 flex h-36 items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)]">
-        {product.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            loading="lazy"
-            className="h-full w-full object-contain transition-transform group-hover:scale-105"
-          />
-        ) : (
-          <span className="text-4xl">{product.brand.charAt(0)}</span>
-        )}
+      <div className="mb-3 h-36 overflow-hidden rounded-xl bg-[var(--surface-2)]">
+        <ProductImage
+          src={product.imageUrl}
+          alt={product.name}
+          className="transition-transform group-hover:scale-105"
+        />
       </div>
 
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-brand-700)] dark:text-brand-300">

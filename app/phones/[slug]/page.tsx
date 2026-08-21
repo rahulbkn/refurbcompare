@@ -6,6 +6,7 @@ import { formatINR } from "@/lib/format";
 import SellerComparisonTable from "@/components/seller-comparison-table";
 import PriceHistoryChart from "@/components/price-history-chart";
 import PriceAlertForm from "@/components/price-alert-form";
+import ProductImage from "@/components/product-image";
 import AffiliateDisclosure from "@/components/affiliate-disclosure";
 
 export const dynamic = "force-dynamic";
@@ -59,12 +60,7 @@ export default async function PhonePage({
             </div>
             {product.imageUrl && (
               <div className="h-28 w-28 shrink-0 overflow-hidden rounded-xl bg-[var(--surface-2)]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="h-full w-full object-contain"
-                />
+                <ProductImage src={product.imageUrl} alt={product.name} />
               </div>
             )}
           </div>
